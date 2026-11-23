@@ -15,6 +15,8 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Phones are ARM. Leaving out x86 halves the APK; Play's App Bundle then ships one ARM type per phone.
+        ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
     }
 
     compileOptions {

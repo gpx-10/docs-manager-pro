@@ -1,2 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<paths><cache-path name="shared" path="shared/" /></paths>
+<paths>
+    <cache-path name="shared" path="shared/" />
+    <!-- Private copies of files opened from other apps, so they reopen from Recent. -->
+    <files-path name="received" path="received/" />
+</paths>
