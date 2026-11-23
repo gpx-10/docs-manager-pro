@@ -15,6 +15,9 @@ ever lost, ask Play support for an upload key reset. Users are not affected.
 
 1. In `app/build.gradle.kts`, raise `versionCode` by 1 and set `versionName` (for example 1.0.1).
 2. Run the tests: `./gradlew testDebugUnitTest connectedDebugAndroidTest` (emulator or phone attached).
+   If the release build is installed on that device, uninstall it first
+   (`adb uninstall in.llmlabs.docsmanager`): Android refuses to replace a release-signed app
+   with the debug-signed test build, and the device tests then do not run.
 3. Build: `./gradlew bundleRelease`
 4. Upload `app/build/outputs/bundle/release/app-release.aab` in Play Console.
 
