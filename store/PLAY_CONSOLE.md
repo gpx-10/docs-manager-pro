@@ -9,7 +9,7 @@ Copy them into Play Console as written. If the app changes, update this file fir
 |---|---|---|
 | 1 | ✅ Done 24 Nov 2026: the privacy policy is live at https://llmlabs.in/apps/docs-manager-pro/privacy | Play requires a working privacy policy URL, and the app links to it |
 | 2 | ✅ Done 24 Nov 2026: source is public at https://github.com/gpx-10/docs-manager-pro | MuPDF is AGPL: anyone who gets the app must be able to get its source. The app's About screen links there |
-| 3 | Upload `store/all-files-access-declaration.mp4` to YouTube as **Unlisted** and copy the link | The All files access declaration needs a video link |
+| 3 | ✅ Done 24 Nov 2026: video at https://www.youtube.com/watch?v=TrmWxzDRxI4 | The All files access declaration needs a video link |
 | 4 | Back up `keystore/upload-keystore.jks` and `keystore.properties` (password manager plus an offline copy) | They sign every update. If lost, Play support can reset the upload key, but it takes days |
 | 5 | Build: `./gradlew bundleRelease` → `app/build/outputs/bundle/release/app-release.aab` | The file you upload |
 
@@ -66,7 +66,7 @@ Not a government app · No financial features · No health features.
 Play Console asks for this after you upload the bundle (Policy → App content → **Permissions declaration form**, or a prompt on the release page).
 
 - **Core functionality:** Document management
-- **Video:** the unlisted YouTube link from step 3. The video shows: the in-app card explaining the option → Allow full access → Android's All files access switch → the device-wide document list (including Download) → opening a PDF.
+- **Video:** https://www.youtube.com/watch?v=TrmWxzDRxI4 The video shows: the in-app card explaining the option → Allow full access → Android's All files access switch → the device-wide document list (including Download) → opening a PDF.
 
 **Describe how your app uses the permission:**
 > Docs Manager Pro is a document reader and manager. Its Files tab can list every PDF, EPUB, XPS, CBZ and image document on the device in one place, with type filters, so users can find and open their documents wherever they are stored, including the Download folder. The permission is optional. It is requested only when the user taps "Allow full access" on an in-app card that explains what it does, and the app keeps working without it (folder-by-folder access through the system picker). The app only reads files to list and display them. It never modifies, deletes or uploads files, and it has no internet permission.
