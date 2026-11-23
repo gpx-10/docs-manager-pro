@@ -56,6 +56,13 @@ class DocumentEngineTest {
         }
     }
 
+    @Test
+    fun reportsEachPageSizeInPoints() {
+        engine.open(fixture("three-pages.pdf"), "three-pages.pdf").use { doc ->
+            assertEquals(PageSize(595f, 842f), doc.pageSize(2))
+        }
+    }
+
     private fun hasDarkPixel(b: android.graphics.Bitmap, xs: IntRange, ys: IntRange): Boolean =
         xs.any { x -> ys.any { y -> android.graphics.Color.luminance(b.getPixel(x, y)) < 0.5f } }
 }

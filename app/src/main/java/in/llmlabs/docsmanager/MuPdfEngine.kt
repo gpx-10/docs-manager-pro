@@ -17,6 +17,15 @@ class MuPdfEngine : DocumentEngine {
 
 private class MuPdfDocument(private val doc: Document) : OpenDocument {
     override val pageCount: Int get() = doc.countPages()
+    override fun pageSize(index: Int): PageSize {
+        val page = doc.loadPage(index)
+        try {
+            val b = page.bounds
+            return PageSize(b.x1 - b.x0, b.y1 - b.y0)
+        } finally {
+            page.destroy()
+        }
+    }
     override fun renderPage(index: Int, widthPx: Int): android.graphics.Bitmap {
         val page = doc.loadPage(index)
         try {

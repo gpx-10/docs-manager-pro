@@ -15,6 +15,12 @@ class PasswordRequiredException(val wrongPassword: Boolean) :
 interface OpenDocument : AutoCloseable {
     val pageCount: Int
 
+    /** Size of page [index] (0-based) in points. */
+    fun pageSize(index: Int): PageSize
+
     /** Draws page [index] (0-based) scaled to [widthPx] wide, keeping its proportions. */
     fun renderPage(index: Int, widthPx: Int): android.graphics.Bitmap
 }
+
+/** A page's width and height in points (1/72 inch). */
+data class PageSize(val width: Float, val height: Float)
