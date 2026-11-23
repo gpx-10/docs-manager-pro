@@ -103,10 +103,14 @@ private sealed interface Load {
 }
 
 private val A4 = PageSize(595f, 842f)
+/**
+ * Night mode: flips light and dark but keeps each colour's hue (an inversion followed by a
+ * 180° hue turn), so white paper turns black and text turns light while blue charts stay blue.
+ */
 private val INVERT = ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
-    -1f, 0f, 0f, 0f, 255f,
-    0f, -1f, 0f, 0f, 255f,
-    0f, 0f, -1f, 0f, 255f,
+    0.574f, -1.430f, -0.144f, 0f, 255f,
+    -0.426f, -0.430f, -0.144f, 0f, 255f,
+    -0.426f, -1.430f, 0.856f, 0f, 255f,
     0f, 0f, 0f, 1f, 0f,
 )))
 private val NIGHT_BAR = Color(0xFF1B1E28)

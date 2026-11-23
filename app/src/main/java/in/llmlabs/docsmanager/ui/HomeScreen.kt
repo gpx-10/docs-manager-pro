@@ -74,6 +74,9 @@ fun HomeScreen(
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var comingSoon by remember { mutableStateOf<Tool?>(null) }
+    var menuOpen by remember { mutableStateOf(false) }
+    var aboutOpen by remember { mutableStateOf(false) }
+    val context = LocalContext.current
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(onOpen) }
@@ -103,6 +106,15 @@ fun HomeScreen(
                         Text("Docs Manager Pro", fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 },
+                actions = {
+                    Box {
+                        IconButton(onClick = { menuOpen = true }) { Icon(Icons.Outlined.MoreVert, "More") }
+                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                            DropdownMenuItem(text = { Text("Privacy policy") }, leadingIcon = { Icon(Icons.Outlined.PrivacyTip, null) }, onClick = { menuOpen = false; openLink(context, PRIVACY_URL) })
+                            DropdownMenuItem(text = { Text("About") }, leadingIcon = { Icon(Icons.Outlined.Info, null) }, onClick = { menuOpen = false; aboutOpen = true })
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background),
             )
         },
@@ -118,7 +130,12 @@ fun HomeScreen(
     ) { pad ->
         Box(Modifier.padding(pad)) {
             when (tab) {
-                Tab.Home -> HomeTab(recent, onOpen, remove, onTool, openPicker, seeAllTools = { tab = Tab.Tools }, seeAllFiles = { tab = Tab.Files })
+                Tab.Home -> HomeTab(
+                    recent, onOpen, remove, openPicker,
+                    addFolder = { folderPicker.launch(null) },
+                    showFiles = { tab = Tab.Files },
+                    showTools = { tab = Tab.Tools },
+                )
                 Tab.Files -> FilesTab(
                     recent, folders, onOpen, remove, onClearRecent, openPicker,
                     addFolder = { folderPicker.launch(null) }, onRemoveFolder,
@@ -128,6 +145,8 @@ fun HomeScreen(
             }
         }
     }
+
+    if (aboutOpen) AboutDialog(onDismiss = { aboutOpen = false })
 
     comingSoon?.let { tool ->
         AlertDialog(
@@ -149,10 +168,10 @@ private fun HomeTab(
     recent: List<RecentFile>,
     onOpen: (Uri) -> Unit,
     onRemove: (RecentFile) -> Unit,
-    onTool: (Tool) -> Unit,
     openPicker: () -> Unit,
-    seeAllTools: () -> Unit,
-    seeAllFiles: () -> Unit,
+    addFolder: () -> Unit,
+    showFiles: () -> Unit,
+    showTools: () -> Unit,
 ) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(scaled(80.dp)),
@@ -161,9 +180,12 @@ private fun HomeTab(
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item(span = { GridItemSpan(maxLineSpan) }) { HeroCard(openPicker) }
-        item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Quick tools", "All tools", seeAllTools) }
-        items(TOOLS.take(8)) { QuickTool(it, onTool) }
-        item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Recent", if (recent.size > 5) "See all" else null, seeAllFiles) }
+        item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Quick actions", null) {} }
+        item { QuickAction(Icons.Outlined.FileOpen, "Open a file", openPicker) }
+        item { QuickAction(Icons.Outlined.CreateNewFolder, "Add a folder", addFolder) }
+        item { QuickAction(Icons.Outlined.FolderOpen, "My files", showFiles) }
+        item { QuickAction(Icons.Outlined.GridView, "Tools", showTools) }
+        item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Recent", if (recent.size > 5) "See all" else null, showFiles) }
         if (recent.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { EmptyNote(Icons.Outlined.History, "Files you open will show up here") }
         } else {
@@ -204,16 +226,16 @@ private fun SectionHeader(title: String, action: String?, onAction: () -> Unit) 
 }
 
 @Composable
-private fun QuickTool(tool: Tool, onTool: (Tool) -> Unit) {
+private fun QuickAction(icon: ImageVector, label: String, onClick: () -> Unit) {
     Column(
-        Modifier.clip(RoundedCornerShape(14.dp)).clickable { onTool(tool) }.padding(vertical = 8.dp),
+        Modifier.clip(RoundedCornerShape(14.dp)).clickable(onClick = onClick).padding(vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Box(Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
-            Icon(tool.icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            Icon(icon, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
         }
         Spacer(Modifier.height(6.dp))
-        Text(tool.title, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
+        Text(label, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
     }
 }
 
@@ -477,11 +499,70 @@ private fun ToolsTab(onTool: (Tool) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        ToolGroup.entries.forEach { group ->
-            item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader(group.title, null) {} }
-            items(TOOLS.filter { it.group == group }) { ToolCard(it, onTool) }
+        item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Available now", null) {} }
+        items(TOOLS.filter { it.ready }) { ToolCard(it, onTool) }
+        item(span = { GridItemSpan(maxLineSpan) }) { OnTheWay(TOOLS.filter { !it.ready }) }
+    }
+}
+
+/** Tools still being built, listed plainly so nothing on screen pretends to work. */
+@Composable
+private fun OnTheWay(tools: List<Tool>) {
+    if (tools.isEmpty()) return
+    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Column(Modifier.padding(16.dp)) {
+            Text("On the way", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "These tools from llmlabs.in are being built and tested for the app, and arrive in free updates:",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            ToolGroup.entries.forEach { group ->
+                val names = tools.filter { it.group == group }.map { it.title }
+                if (names.isNotEmpty()) {
+                    Spacer(Modifier.height(10.dp))
+                    Text(group.title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                    Text(names.joinToString(" · "), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
     }
+}
+
+const val PRIVACY_URL = "https://llmlabs.in/apps/docs-manager-pro/privacy"
+const val SOURCE_URL = "https://github.com/gpx-10/docs-manager-pro"
+
+private fun openLink(context: android.content.Context, url: String) {
+    runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, Uri.parse(url))) }
+}
+
+/** Version, privacy, and the open-source notices MuPDF's AGPL licence requires. */
+@Composable
+private fun AboutDialog(onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val version = remember { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "" }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { AppLogo(40.dp) },
+        title = { Text("Docs Manager Pro") },
+        text = {
+            Column {
+                Text("Version $version · by LLM Labs", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(10.dp))
+                Text("Your documents stay on your phone. The app has no ads, no accounts and no internet access.", style = MaterialTheme.typography.bodySmall)
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    "Free and open source under the GNU AGPL v3. Built with MuPDF © Artifex Software (AGPL v3) and Android Jetpack libraries (Apache 2.0).",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                TextButton(onClick = { openLink(context, SOURCE_URL) }, contentPadding = PaddingValues(0.dp)) { Text("Source code") }
+                TextButton(onClick = { openLink(context, PRIVACY_URL) }, contentPadding = PaddingValues(0.dp)) { Text("Privacy policy") }
+                TextButton(onClick = { openLink(context, "https://llmlabs.in") }, contentPadding = PaddingValues(0.dp)) { Text("llmlabs.in") }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+    )
 }
 
 @Composable
