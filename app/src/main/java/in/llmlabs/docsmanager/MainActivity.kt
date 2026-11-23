@@ -6,11 +6,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.IntentCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import `in`.llmlabs.docsmanager.data.AllFiles
 import `in`.llmlabs.docsmanager.data.DocumentFiles
 import `in`.llmlabs.docsmanager.data.Folders
 import `in`.llmlabs.docsmanager.data.RecentFile
@@ -29,6 +31,8 @@ class MainActivity : ComponentActivity() {
     private var opened by mutableStateOf<Opened?>(null)
     private var recent by mutableStateOf(emptyList<RecentFile>())
     private var folders by mutableStateOf(emptyList<Uri>())
+    private var allFilesGranted by mutableStateOf(false)
+    private val askStoragePermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { refresh() }
     private lateinit var recentFiles: RecentFiles
     private lateinit var folderStore: Folders
 
@@ -56,6 +60,11 @@ class MainActivity : ComponentActivity() {
                         onClearRecent = { recentFiles.clear(); refresh() },
                         onAddFolder = { folderStore.add(it); refresh() },
                         onRemoveFolder = { folderStore.remove(it); refresh() },
+                        allFilesGranted = allFilesGranted,
+                        onAllowAllFiles = ::askForAllFiles,
+                        onManageAllFiles = {
+                            startActivity(if (AllFiles.usesRuntimePermission) AllFiles.appSettingsIntent(this) else AllFiles.settingsIntent(this))
+                        },
                     )
                 } else {
                     val known = recentFiles.find(o.uri.toString())
@@ -74,6 +83,17 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // The user may have turned All files access on or off in Settings.
+    override fun onResume() {
+        super.onResume()
+        refresh()
+    }
+
+    private fun askForAllFiles() {
+        if (AllFiles.usesRuntimePermission) askStoragePermission.launch(AllFiles.RUNTIME_PERMISSION)
+        else startActivity(AllFiles.settingsIntent(this))
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         opened?.let {
@@ -90,6 +110,7 @@ class MainActivity : ComponentActivity() {
     private fun refresh() {
         recent = recentFiles.list()
         folders = folderStore.list()
+        allFilesGranted = AllFiles.isGranted(this)
     }
 
     private fun openPicked(uri: Uri) {

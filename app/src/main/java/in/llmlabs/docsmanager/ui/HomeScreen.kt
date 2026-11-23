@@ -9,6 +9,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import `in`.llmlabs.docsmanager.R
+import `in`.llmlabs.docsmanager.data.AllFiles
 import `in`.llmlabs.docsmanager.data.DocumentFiles
 import `in`.llmlabs.docsmanager.data.RecentFile
 import kotlinx.coroutines.Dispatchers
@@ -64,6 +67,10 @@ fun HomeScreen(
     onClearRecent: () -> Unit,
     onAddFolder: (Uri) -> Unit,
     onRemoveFolder: (Uri) -> Unit,
+    /** Whether the optional "every document on this phone" access is on. */
+    allFilesGranted: Boolean,
+    onAllowAllFiles: () -> Unit,
+    onManageAllFiles: () -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var comingSoon by remember { mutableStateOf<Tool?>(null) }
@@ -112,7 +119,11 @@ fun HomeScreen(
         Box(Modifier.padding(pad)) {
             when (tab) {
                 Tab.Home -> HomeTab(recent, onOpen, remove, onTool, openPicker, seeAllTools = { tab = Tab.Tools }, seeAllFiles = { tab = Tab.Files })
-                Tab.Files -> FilesTab(recent, folders, onOpen, remove, onClearRecent, openPicker, addFolder = { folderPicker.launch(null) }, onRemoveFolder)
+                Tab.Files -> FilesTab(
+                    recent, folders, onOpen, remove, onClearRecent, openPicker,
+                    addFolder = { folderPicker.launch(null) }, onRemoveFolder,
+                    allFilesGranted, onAllowAllFiles, onManageAllFiles,
+                )
                 Tab.Tools -> ToolsTab(onTool)
             }
         }
@@ -284,9 +295,20 @@ private fun FilesTab(
     openPicker: () -> Unit,
     addFolder: () -> Unit,
     onRemoveFolder: (Uri) -> Unit,
+    allFilesGranted: Boolean,
+    onAllowAllFiles: () -> Unit,
+    onManageAllFiles: () -> Unit,
 ) {
     val context = LocalContext.current
     var confirmClear by remember { mutableStateOf(false) }
+    // Every document on the phone, when the user has turned on full access.
+    var scanKey by remember { mutableIntStateOf(0) }
+    var phoneFiles by remember(allFilesGranted) { mutableStateOf<List<DocumentFiles.DeviceFile>?>(null) }
+    var filter by rememberSaveable { mutableStateOf(KindFilter.All) }
+    var showAll by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(allFilesGranted, scanKey) {
+        if (allFilesGranted) phoneFiles = withContext(Dispatchers.IO) { AllFiles.scan() }
+    }
     var folderFiles by remember(folders) { mutableStateOf<Map<Uri, List<DocumentFiles.DeviceFile>?>>(folders.associateWith { null }) }
     LaunchedEffect(folders) {
         folders.forEach { tree ->
@@ -306,6 +328,11 @@ private fun FilesTab(
                 ActionCard(Icons.Outlined.CreateNewFolder, "Add a folder", "Documents, SD card, Drive or any folder inside Download", addFolder, Modifier.weight(1f))
             }
         }
+        if (allFilesGranted) {
+            phoneSection(phoneFiles, filter, { filter = it }, showAll, { showAll = true }, onOpen, onRefresh = { phoneFiles = null; scanKey++ }, onManageAllFiles)
+        } else {
+            item { FullAccessOffer(onAllowAllFiles) }
+        }
         folders.forEach { tree -> folderSection(tree, folderFiles[tree], onOpen, onRemoveFolder) }
         item { SectionHeader("Recent files", if (recent.isNotEmpty()) "Clear all" else null) { confirmClear = true } }
         if (recent.isEmpty()) item { EmptyNote(Icons.Outlined.History, "Files you open will show up here") }
@@ -320,6 +347,94 @@ private fun FilesTab(
             confirmButton = { TextButton(onClick = { confirmClear = false; onClearRecent() }) { Text("Clear") } },
             dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Cancel") } },
         )
+    }
+}
+
+/** Document kinds to narrow the whole-phone list. */
+private enum class KindFilter(val label: String, val extensions: Set<String>?) {
+    All("All", null),
+    Pdf("PDF", setOf("pdf")),
+    Books("E-books", setOf("epub", "cbz", "xps", "oxps")),
+    Images("Images", setOf("png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff")),
+}
+
+private const val PHONE_PREVIEW = 30
+
+@Composable
+private fun FullAccessOffer(onAllow: () -> Unit) {
+    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Column(Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Outlined.PhoneAndroid, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                Spacer(Modifier.width(10.dp))
+                Text("See every document on this phone", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "Includes Download and every other folder. Needs Android's All files access. " +
+                    "Docs Manager Pro only reads documents, and nothing leaves your phone. You can turn it off any time. " +
+                    "Prefer not to? Add folders one by one instead.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+            Spacer(Modifier.height(10.dp))
+            Button(onClick = onAllow) { Text("Allow full access") }
+        }
+    }
+}
+
+private fun LazyGridScope.phoneSection(
+    files: List<DocumentFiles.DeviceFile>?,
+    filter: KindFilter,
+    onFilter: (KindFilter) -> Unit,
+    showAll: Boolean,
+    onShowAll: () -> Unit,
+    onOpen: (Uri) -> Unit,
+    onRefresh: () -> Unit,
+    onManage: () -> Unit,
+) {
+    val shown = files?.filter { f -> filter.extensions?.contains(f.name.substringAfterLast('.', "").lowercase()) ?: true }
+    item(key = "phone-header") {
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Outlined.PhoneAndroid, null, tint = MaterialTheme.colorScheme.primary)
+            Spacer(Modifier.width(8.dp))
+            Text(
+                if (shown == null) "On this phone" else "On this phone (${shown.size})",
+                style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f),
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+            )
+            IconButton(onClick = onRefresh) { Icon(Icons.Outlined.Refresh, "Look for new documents") }
+            TextButton(onClick = onManage) { Text("Manage") }
+        }
+    }
+    item(key = "phone-filters") {
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            KindFilter.entries.forEach { k ->
+                FilterChip(selected = filter == k, onClick = { onFilter(k) }, label = { Text(k.label, maxLines = 1) })
+            }
+        }
+    }
+    when {
+        shown == null -> item(key = "phone-loading") {
+            Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                Spacer(Modifier.width(10.dp))
+                Text("Looking for documents…", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        shown.isEmpty() -> item(key = "phone-empty") { EmptyNote(Icons.Outlined.SearchOff, "No ${if (filter == KindFilter.All) "documents" else filter.label} found on this phone") }
+        else -> {
+            val visible = if (showAll) shown else shown.take(PHONE_PREVIEW)
+            items(visible, key = { "phone-${it.uri}" }) { f ->
+                val context = LocalContext.current
+                FileRow(f.name, "${Formatter.formatShortFileSize(context, f.size)} · ${whenOpened(f.modified)}", onClick = { onOpen(f.uri) })
+            }
+            if (!showAll && shown.size > PHONE_PREVIEW) {
+                item(key = "phone-more") {
+                    OutlinedButton(onClick = onShowAll, modifier = Modifier.fillMaxWidth()) { Text("Show all ${shown.size}") }
+                }
+            }
+        }
     }
 }
 

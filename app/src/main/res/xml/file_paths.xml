@@ -3,4 +3,6 @@
     <cache-path name="shared" path="shared/" />
     <!-- Private copies of files opened from other apps, so they reopen from Recent. -->
     <files-path name="received" path="received/" />
+    <!-- Documents found with All files access, so they can be shared to other apps. -->
+    <external-path name="phone" path="." />
 </paths>

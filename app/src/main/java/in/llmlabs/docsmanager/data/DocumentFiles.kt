@@ -32,6 +32,8 @@ object DocumentFiles {
 
     fun hasLastingAccess(context: Context, uri: Uri): Boolean =
         uri.authority == context.packageName + ".files" ||
+            // Found through All files access: readable for as long as that stays on.
+            (uri.scheme == "file" && AllFiles.isGranted(context)) ||
             context.contentResolver.persistedUriPermissions.any {
                 // An exact grant, or a file inside a folder the user granted in the Files tab.
                 it.isReadPermission && (it.uri == uri || uri.toString().startsWith(it.uri.toString() + "/document/"))
@@ -59,6 +61,18 @@ object DocumentFiles {
             if (!kept) entry.deleteRecursively()
         }
     }
+
+    /**
+     * A link another app can read: a file found through All files access is wrapped in this
+     * app's FileProvider (Android does not allow handing out raw file paths).
+     */
+    fun shareableUri(context: Context, uri: Uri): Uri =
+        if (uri.scheme == "file") FileProvider.getUriForFile(context, context.packageName + ".files", File(uri.path!!)) else uri
+
+    fun mimeType(context: Context, uri: Uri, name: String): String =
+        context.contentResolver.getType(uri)
+            ?: android.webkit.MimeTypeMap.getSingleton().getMimeTypeFromExtension(name.substringAfterLast('.', "").lowercase())
+            ?: "application/octet-stream"
 
     /** A sentence a person can act on, instead of a system error. */
     fun friendlyError(e: Throwable): String = when (e) {

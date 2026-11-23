@@ -73,6 +73,7 @@ import `in`.llmlabs.docsmanager.OpenDocument
 import `in`.llmlabs.docsmanager.PageSize
 import `in`.llmlabs.docsmanager.PasswordRequiredException
 import `in`.llmlabs.docsmanager.ViewerState
+import `in`.llmlabs.docsmanager.data.AllFiles
 import `in`.llmlabs.docsmanager.data.DocumentFiles
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
@@ -165,8 +166,11 @@ fun ViewerScreen(
             }
             if (name.isBlank()) name = uri.lastPathSegment?.substringAfterLast('/') ?: "Document"
         } catch (e: Throwable) {
-            if (name.isBlank()) name = "Document"
-            load = Load.Failed(DocumentFiles.friendlyError(e), unavailable = e !is OutOfMemoryError)
+            if (name.isBlank()) name = uri.lastPathSegment?.substringAfterLast('/') ?: "Document"
+            val message = if (uri.scheme == "file" && !AllFiles.isGranted(context))
+                "This file was found with full access, which is now off. Turn it back on in the Files tab to open it."
+            else DocumentFiles.friendlyError(e)
+            load = Load.Failed(message, unavailable = e !is OutOfMemoryError)
         }
     }
 
@@ -290,7 +294,7 @@ fun ViewerScreen(
                                 Icon(if (night) Icons.Outlined.LightMode else Icons.Outlined.DarkMode, if (night) "Day mode" else "Night mode")
                             }
                         }
-                        if (load !is Load.Failed) IconButton(onClick = { share(context, uri) }) { Icon(Icons.Outlined.Share, "Share") }
+                        if (load !is Load.Failed) IconButton(onClick = { share(context, uri, name) }) { Icon(Icons.Outlined.Share, "Share") }
                         if (session != null) {
                             Box {
                                 IconButton(onClick = { menuOpen = true }) { Icon(Icons.Outlined.MoreVert, "More") }
@@ -582,10 +586,11 @@ private fun Unavailable(failed: Load.Failed, onRemoveFromRecent: (() -> Unit)?, 
     }
 }
 
-private fun share(context: android.content.Context, uri: Uri) {
+private fun share(context: android.content.Context, uri: Uri, name: String) {
+    val link = DocumentFiles.shareableUri(context, uri)
     val send = Intent(Intent.ACTION_SEND)
-        .setType(context.contentResolver.getType(uri) ?: "application/pdf")
-        .putExtra(Intent.EXTRA_STREAM, uri)
+        .setType(DocumentFiles.mimeType(context, link, name))
+        .putExtra(Intent.EXTRA_STREAM, link)
         .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     val chooser = Intent.createChooser(send, "Share")
         // Don't offer this app as a place to share to.
