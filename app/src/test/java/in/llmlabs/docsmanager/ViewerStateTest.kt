@@ -19,4 +19,25 @@ class ViewerStateTest {
         assertEquals(5f, state.zoomBy(3f).zoomBy(3f).zoom, 0.001f)
         assertEquals(1f, state.zoomBy(0.2f).zoom, 0.001f)
     }
+
+    @Test
+    fun pageCounterFollowsWhatIsMostlyOnScreenAndReachesTheLastPage() {
+        val state = ViewerState(pageCount = 31)
+        // Scrolled to the very end: the last page is showing, even if the one before is at the top.
+        assertEquals("31 / 31", state.scrolledTo(firstVisible = 29, firstHiddenFraction = 0.2f, atEnd = true).pageLabel)
+        // More than half of the top page is scrolled away: the next page is the one being read.
+        assertEquals("6 / 31", state.scrolledTo(firstVisible = 4, firstHiddenFraction = 0.6f, atEnd = false).pageLabel)
+        assertEquals("5 / 31", state.scrolledTo(firstVisible = 4, firstHiddenFraction = 0.3f, atEnd = false).pageLabel)
+    }
+
+    @Test
+    fun typedPageNumbersOutsideTheDocumentAreRejected() {
+        val state = ViewerState(pageCount = 31)
+        assertEquals(6, state.pageIndexFor("7"))
+        assertEquals(30, state.pageIndexFor("31"))
+        assertEquals(null, state.pageIndexFor("0"))
+        assertEquals(null, state.pageIndexFor("32"))
+        assertEquals(null, state.pageIndexFor(""))
+        assertEquals(null, state.pageIndexFor("abc"))
+    }
 }
