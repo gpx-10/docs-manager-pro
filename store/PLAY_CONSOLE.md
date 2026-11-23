@@ -7,8 +7,8 @@ Copy them into Play Console as written. If the app changes, update this file fir
 
 | # | Step | Why |
 |---|---|---|
-| 1 | Deploy the llmlabs site from branch `docs-manager-pro-privacy` so https://llmlabs.in/apps/docs-manager-pro/privacy is live | Play requires a working privacy policy URL, and the app links to it |
-| 2 | Publish this project's source at https://github.com/gpx-10/docs-manager-pro (public) | MuPDF is AGPL: anyone who gets the app must be able to get its source. The app's About screen links there |
+| 1 | ✅ Done 24 Nov 2026: the privacy policy is live at https://llmlabs.in/apps/docs-manager-pro/privacy | Play requires a working privacy policy URL, and the app links to it |
+| 2 | ✅ Done 24 Nov 2026: source is public at https://github.com/gpx-10/docs-manager-pro | MuPDF is AGPL: anyone who gets the app must be able to get its source. The app's About screen links there |
 | 3 | Upload `store/all-files-access-declaration.mp4` to YouTube as **Unlisted** and copy the link | The All files access declaration needs a video link |
 | 4 | Back up `keystore/upload-keystore.jks` and `keystore.properties` (password manager plus an offline copy) | They sign every update. If lost, Play support can reset the upload key, but it takes days |
 | 5 | Build: `./gradlew bundleRelease` → `app/build/outputs/bundle/release/app-release.aab` | The file you upload |
