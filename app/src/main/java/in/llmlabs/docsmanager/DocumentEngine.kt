@@ -8,4 +8,7 @@ interface DocumentEngine {
 
 interface OpenDocument : AutoCloseable {
     val pageCount: Int
+
+    /** Draws page [index] (0-based) scaled to [widthPx] wide, keeping its proportions. */
+    fun renderPage(index: Int, widthPx: Int): android.graphics.Bitmap
 }
