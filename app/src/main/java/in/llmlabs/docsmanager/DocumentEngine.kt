@@ -15,6 +15,12 @@ class PasswordRequiredException(val wrongPassword: Boolean) :
 interface OpenDocument : AutoCloseable {
     val pageCount: Int
 
+    /** True for e-books (EPUB and similar), whose text re-flows into pages at any text size. */
+    val isReflowable: Boolean
+
+    /** Re-flows an e-book at [textSize] points; the page count changes. Does nothing for fixed-layout files. */
+    fun setTextSize(textSize: Float)
+
     /** Size of page [index] (0-based) in points. */
     fun pageSize(index: Int): PageSize
 

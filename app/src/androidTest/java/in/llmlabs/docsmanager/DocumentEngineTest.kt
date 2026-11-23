@@ -63,6 +63,26 @@ class DocumentEngineTest {
         }
     }
 
+    @Test
+    fun anEbookReflowsIntoMorePagesAtALargerTextSize() {
+        engine.open(fixture("book.epub"), "book.epub").use { doc ->
+            assertTrue(doc.isReflowable)
+            doc.setTextSize(8f)
+            val small = doc.pageCount
+            doc.setTextSize(20f)
+            assertTrue("8pt gave $small pages, 20pt gave ${doc.pageCount}", doc.pageCount > small)
+        }
+    }
+
+    @Test
+    fun aPdfKeepsItsPagesWhenTextSizeIsSet() {
+        engine.open(fixture("three-pages.pdf"), "three-pages.pdf").use { doc ->
+            assertFalse(doc.isReflowable)
+            doc.setTextSize(20f)
+            assertEquals(3, doc.pageCount)
+        }
+    }
+
     private fun hasDarkPixel(b: android.graphics.Bitmap, xs: IntRange, ys: IntRange): Boolean =
         xs.any { x -> ys.any { y -> android.graphics.Color.luminance(b.getPixel(x, y)) < 0.5f } }
 }

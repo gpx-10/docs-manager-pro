@@ -17,6 +17,12 @@ class MuPdfEngine : DocumentEngine {
 
 private class MuPdfDocument(private val doc: Document) : OpenDocument {
     override val pageCount: Int get() = doc.countPages()
+    override val isReflowable: Boolean get() = doc.isReflowable
+
+    override fun setTextSize(textSize: Float) {
+        // A phone-shaped page; MuPDF flows the book's text into as many of these as it needs.
+        if (doc.isReflowable) doc.layout(EBOOK_PAGE_WIDTH, EBOOK_PAGE_HEIGHT, textSize)
+    }
     override fun pageSize(index: Int): PageSize {
         val page = doc.loadPage(index)
         try {
@@ -36,3 +42,6 @@ private class MuPdfDocument(private val doc: Document) : OpenDocument {
     }
     override fun close() = doc.destroy()
 }
+
+private const val EBOOK_PAGE_WIDTH = 360f
+private const val EBOOK_PAGE_HEIGHT = 640f
