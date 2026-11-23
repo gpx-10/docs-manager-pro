@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A document with a folded corner, text lines and the LLM Labs slash. Kept inside the 72dp safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- Soft shadow -->
+    <path android:fillColor="#33101A5C"
+        android:pathData="M37,32h24l13,13v35a4,4 0,0 1,-4 4h-33a4,4 0,0 1,-4 -4v-44a4,4 0,0 1,4 -4z" />
+    <!-- Page -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M35,29h24l13,13v35a4,4 0,0 1,-4 4h-33a4,4 0,0 1,-4 -4v-44a4,4 0,0 1,4 -4z" />
+    <!-- Folded corner -->
+    <path android:fillColor="#FFC7D0FB"
+        android:pathData="M59,29v9a4,4 0,0 0,4 4h9z" />
+    <!-- Text lines -->
+    <path android:strokeColor="#FF3B5BDB" android:strokeWidth="3.5" android:strokeLineCap="round"
+        android:pathData="M39,50h18M39,58h26M39,66h22" />
+    <!-- LLM Labs slash accent -->
+    <path android:strokeColor="#FFA5B4FC" android:strokeWidth="4" android:strokeLineCap="round"
+        android:pathData="M64,64l-5,13" />
+</vector>
