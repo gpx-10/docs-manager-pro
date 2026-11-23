@@ -3,6 +3,8 @@ package `in`.llmlabs.docsmanager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -31,6 +33,26 @@ class DocumentEngineTest {
             // "Page 1" is drawn near the top left; the bottom of the page is blank.
             assertTrue(hasDarkPixel(bitmap, 60..400, 60..140))
             assertTrue(!hasDarkPixel(bitmap, 0..599, 500..840))
+        }
+    }
+
+    @Test
+    fun refusesALockedPdfOpenedWithoutAPassword() {
+        val e = assertThrows(PasswordRequiredException::class.java) {
+            engine.open(fixture("locked-secret.pdf"), "locked-secret.pdf")
+        }
+        assertFalse(e.wrongPassword)
+    }
+
+    @Test
+    fun refusesAWrongPasswordAndOpensWithTheRightOne() {
+        val bytes = fixture("locked-secret.pdf")
+        val e = assertThrows(PasswordRequiredException::class.java) {
+            engine.open(bytes, "locked-secret.pdf", password = "guess")
+        }
+        assertTrue(e.wrongPassword)
+        engine.open(bytes, "locked-secret.pdf", password = "secret").use { doc ->
+            assertEquals(3, doc.pageCount)
         }
     }
 
