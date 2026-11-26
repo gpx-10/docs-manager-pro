@@ -34,6 +34,9 @@ object DocumentFiles {
         uri.authority == context.packageName + ".files" ||
             // Found through All files access: readable for as long as that stays on.
             (uri.scheme == "file" && AllFiles.isGranted(context)) ||
+            // A Result this app saved to Download: always readable by the app that made it.
+            ResultFiles.isOwnResult(context, uri) ||
+            (uri.scheme == "file" && uri.path?.contains("/Download/${ResultFiles.FOLDER}/") == true) ||
             context.contentResolver.persistedUriPermissions.any {
                 // An exact grant, or a file inside a folder the user granted in the Files tab.
                 it.isReadPermission && (it.uri == uri || uri.toString().startsWith(it.uri.toString() + "/document/"))

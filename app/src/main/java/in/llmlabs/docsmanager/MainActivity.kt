@@ -7,6 +7,9 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -19,6 +22,9 @@ import `in`.llmlabs.docsmanager.data.RecentFile
 import `in`.llmlabs.docsmanager.data.RecentFiles
 import `in`.llmlabs.docsmanager.ui.DocsTheme
 import `in`.llmlabs.docsmanager.ui.HomeScreen
+import `in`.llmlabs.docsmanager.ui.MergeScreen
+import `in`.llmlabs.docsmanager.ui.SplitScreen
+import `in`.llmlabs.docsmanager.ui.ToolScreen
 import `in`.llmlabs.docsmanager.ui.ViewerScreen
 
 /**
@@ -29,6 +35,8 @@ data class Opened(val uri: Uri, val fromOtherApp: Boolean, val nonce: Long = Sys
 
 class MainActivity : ComponentActivity() {
     private var opened by mutableStateOf<Opened?>(null)
+    /** The tool screen open under any Document, so Back from a Result returns to the tool. */
+    private var tool by mutableStateOf<ToolScreen?>(null)
     private var recent by mutableStateOf(emptyList<RecentFile>())
     private var folders by mutableStateOf(emptyList<Uri>())
     private var allFilesGranted by mutableStateOf(false)
@@ -44,13 +52,25 @@ class MainActivity : ComponentActivity() {
         folderStore = Folders(this)
         refresh()
         // After Android closed the app in the background, come back to the same Document.
+        tool = savedInstanceState?.getString(KEY_TOOL)?.let { runCatching { ToolScreen.valueOf(it) }.getOrNull() }
         opened = savedInstanceState?.getString(KEY_URI)?.let { Opened(Uri.parse(it), savedInstanceState.getBoolean(KEY_EXTERNAL)) }
             ?: documentFrom(intent)
 
         setContent {
             DocsTheme {
                 val o = opened
-                if (o == null) {
+                val t = tool
+                if (t != null) {
+                    // The tool stays underneath while a Result is open, so Back returns to it with its results intact.
+                    Box(Modifier.fillMaxSize()) {
+                        val openResult: (Uri) -> Unit = { opened = Opened(it, fromOtherApp = false) }
+                        when (t) {
+                            ToolScreen.Merge -> MergeScreen(onBack = { tool = null; refresh() }, onOpenResult = openResult)
+                            ToolScreen.Split -> SplitScreen(onBack = { tool = null; refresh() }, onOpenResult = openResult)
+                        }
+                        if (o != null) Viewer(o)
+                    }
+                } else if (o == null) {
                     HomeScreen(
                         recent = recent,
                         folders = folders,
@@ -65,19 +85,10 @@ class MainActivity : ComponentActivity() {
                         onManageAllFiles = {
                             startActivity(if (AllFiles.usesRuntimePermission) AllFiles.appSettingsIntent(this) else AllFiles.settingsIntent(this))
                         },
+                        onOpenTool = { tool = it },
                     )
                 } else {
-                    val known = recentFiles.find(o.uri.toString())
-                    ViewerScreen(
-                        uri = o.uri,
-                        sessionKey = o.nonce,
-                        knownName = known?.name,
-                        startPage = known?.lastPage ?: 0,
-                        onBack = { if (o.fromOtherApp) finish() else { opened = null; refresh() } },
-                        onOpened = { name, bytes -> rememberOpened(o.uri, name, bytes) },
-                        onPageChanged = { key, page -> recentFiles.setLastPage(key, page) },
-                        onRemoveFromRecent = if (known != null) ({ recentFiles.remove(o.uri.toString()); opened = null; refresh() }) else null,
-                    )
+                    Viewer(o)
                 }
             }
         }
@@ -94,8 +105,24 @@ class MainActivity : ComponentActivity() {
         else startActivity(AllFiles.settingsIntent(this))
     }
 
+    @androidx.compose.runtime.Composable
+    private fun Viewer(o: Opened) {
+        val known = recentFiles.find(o.uri.toString())
+        ViewerScreen(
+            uri = o.uri,
+            sessionKey = o.nonce,
+            knownName = known?.name,
+            startPage = known?.lastPage ?: 0,
+            onBack = { if (o.fromOtherApp) finish() else { opened = null; refresh() } },
+            onOpened = { name, bytes -> rememberOpened(o.uri, name, bytes) },
+            onPageChanged = { key, page -> recentFiles.setLastPage(key, page) },
+            onRemoveFromRecent = if (known != null) ({ recentFiles.remove(o.uri.toString()); opened = null; refresh() }) else null,
+        )
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        tool?.let { outState.putString(KEY_TOOL, it.name) }
         opened?.let {
             outState.putString(KEY_URI, it.uri.toString())
             outState.putBoolean(KEY_EXTERNAL, it.fromOtherApp)
@@ -138,5 +165,6 @@ class MainActivity : ComponentActivity() {
     private companion object {
         const val KEY_URI = "opened_uri"
         const val KEY_EXTERNAL = "opened_external"
+        const val KEY_TOOL = "tool"
     }
 }

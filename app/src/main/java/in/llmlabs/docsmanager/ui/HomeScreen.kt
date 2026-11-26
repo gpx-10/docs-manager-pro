@@ -71,6 +71,7 @@ fun HomeScreen(
     allFilesGranted: Boolean,
     onAllowAllFiles: () -> Unit,
     onManageAllFiles: () -> Unit,
+    onOpenTool: (ToolScreen) -> Unit,
 ) {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var comingSoon by remember { mutableStateOf<Tool?>(null) }
@@ -82,7 +83,13 @@ fun HomeScreen(
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(onOpen) }
     val folderPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri -> uri?.let(onAddFolder) }
     val openPicker = { picker.launch(OPENABLE_TYPES) }
-    val onTool: (Tool) -> Unit = { if (it.ready) openPicker() else comingSoon = it }
+    val onTool: (Tool) -> Unit = { t ->
+        when {
+            t.screen != null -> onOpenTool(t.screen)
+            t.ready -> openPicker()
+            else -> comingSoon = t
+        }
+    }
     val remove: (RecentFile) -> Unit = { f ->
         val pos = onRemoveRecent(f)
         scope.launch {
@@ -134,7 +141,7 @@ fun HomeScreen(
                     recent, onOpen, remove, openPicker,
                     addFolder = { folderPicker.launch(null) },
                     showFiles = { tab = Tab.Files },
-                    showTools = { tab = Tab.Tools },
+                    onOpenTool = onOpenTool,
                 )
                 Tab.Files -> FilesTab(
                     recent, folders, onOpen, remove, onClearRecent, openPicker,
@@ -171,7 +178,7 @@ private fun HomeTab(
     openPicker: () -> Unit,
     addFolder: () -> Unit,
     showFiles: () -> Unit,
-    showTools: () -> Unit,
+    onOpenTool: (ToolScreen) -> Unit,
 ) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(scaled(80.dp)),
@@ -183,8 +190,8 @@ private fun HomeTab(
         item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Quick actions", null) {} }
         item { QuickAction(Icons.Outlined.FileOpen, "Open a file", openPicker) }
         item { QuickAction(Icons.Outlined.CreateNewFolder, "Add a folder", addFolder) }
-        item { QuickAction(Icons.Outlined.FolderOpen, "My files", showFiles) }
-        item { QuickAction(Icons.Outlined.GridView, "Tools", showTools) }
+        item { QuickAction(Icons.Outlined.MergeType, "Merge PDF") { onOpenTool(ToolScreen.Merge) } }
+        item { QuickAction(Icons.Outlined.CallSplit, "Split PDF") { onOpenTool(ToolScreen.Split) } }
         item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Recent", if (recent.size > 5) "See all" else null, showFiles) }
         if (recent.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { EmptyNote(Icons.Outlined.History, "Files you open will show up here") }

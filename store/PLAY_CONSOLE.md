@@ -93,6 +93,11 @@ READ
 • Opens password-protected PDFs
 • Picks up on the page where you left off
 
+TOOLS
+• Merge PDF: join several PDFs into one, in the order you choose
+• Split PDF: break a PDF into parts by page ranges, or one file per page
+• Results are saved as new files in Download/Docs Manager Pro; your originals are never changed
+
 FIND
 • Recent files, with the page you were on
 • Add a folder (Documents, SD card, Drive and more) to see all its documents
@@ -109,7 +114,7 @@ More document tools from LLM Labs are on the way in free updates.
 
 - **App icon:** `store/listing/icon-512.png` (512 × 512, 32-bit PNG)
 - **Feature graphic:** `store/listing/feature-graphic.png` (1024 × 500)
-- **Phone screenshots:** `store/listing/phone-1-home.png` … `phone-5-ebook.png` (1080 × 1920, in this order)
+- **Phone screenshots:** `store/listing/phone-1-home.png` … `phone-5-ebook.png` (1080 × 1920, in this order). The Home screenshot shows the 1.0.0 quick actions; retake it for 1.1.0 if you want Merge and Split visible.
 - **App category:** Productivity
 - **Tags:** pick from Play's list. Closest: PDF reader, Document management, File management, E-book reader
 - **Contact email:** trestle1011@gmail.com
@@ -123,10 +128,16 @@ New personal developer accounts must run a **closed test with at least 12 tester
 2. **App signing:** accept **Play App Signing** (Google keeps the app signing key; your file is the upload key).
 3. Upload `app-release.aab`.
 4. **Release name:** `1.0.0 (1)`
-5. **Release notes:**
+5. **Release notes** (for 1.1.0, versionCode 2, if you upload that instead of 1.0.0, use the 1.1.0 notes below):
 ```
 <en-US>
 First release: read PDFs, e-books, XPS, comics and images. Night mode, e-book text size, recent files that reopen where you left off, and folders, or optionally every document on your phone in one list. No ads, no account, no internet.
+</en-US>
+```
+   1.1.0 notes:
+```
+<en-US>
+New: Merge PDF and Split PDF. Join several PDFs into one, or break a PDF into parts by page ranges or page by page. Results are saved to Download/Docs Manager Pro.
 </en-US>
 ```
 6. **Countries/regions:** all, or start with India.

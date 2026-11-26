@@ -7,13 +7,23 @@ import androidx.compose.ui.graphics.vector.ImageVector
 enum class ToolGroup(val title: String) { View("View & read"), Organize("Organize"), Optimize("Optimize & secure"), Edit("Edit & sign"), Convert("Convert"), Ai("AI") }
 
 /** A Tool as on llmlabs.in. [ready] is false until it is built and tested in the app. */
-data class Tool(val title: String, val subtitle: String, val icon: ImageVector, val group: ToolGroup, val ready: Boolean = false)
+/** Tool screens that are built. A Tool without one is either "Open & read" (the file picker) or not ready yet. */
+enum class ToolScreen { Merge, Split }
+
+data class Tool(
+    val title: String,
+    val subtitle: String,
+    val icon: ImageVector,
+    val group: ToolGroup,
+    val ready: Boolean = false,
+    val screen: ToolScreen? = null,
+)
 
 val TOOLS = listOf(
     Tool("Open & read", "PDF, EPUB, XPS, comics, images", Icons.Outlined.MenuBook, ToolGroup.View, ready = true),
     Tool("Office files", "Word, Excel, PowerPoint", Icons.Outlined.Description, ToolGroup.View),
-    Tool("Merge PDF", "Join several PDFs into one", Icons.Outlined.MergeType, ToolGroup.Organize),
-    Tool("Split PDF", "Break a PDF into parts", Icons.Outlined.CallSplit, ToolGroup.Organize),
+    Tool("Merge PDF", "Join several PDFs into one", Icons.Outlined.MergeType, ToolGroup.Organize, ready = true, screen = ToolScreen.Merge),
+    Tool("Split PDF", "Break a PDF into parts", Icons.Outlined.CallSplit, ToolGroup.Organize, ready = true, screen = ToolScreen.Split),
     Tool("Organize pages", "Reorder, rotate, delete", Icons.Outlined.ViewModule, ToolGroup.Organize),
     Tool("Rotate PDF", "Turn pages the right way", Icons.Outlined.RotateRight, ToolGroup.Organize),
     Tool("Extract pages", "Save chosen pages", Icons.Outlined.FileCopy, ToolGroup.Organize),
