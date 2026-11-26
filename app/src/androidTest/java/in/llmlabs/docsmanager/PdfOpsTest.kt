@@ -33,4 +33,10 @@ class PdfOpsTest {
         }
         assertEquals(1, e.index)
     }
+
+    @Test
+    fun splitMakesOneDocumentPerRange() {
+        val parts = ops.split(fixture("mixed-sizes.pdf"), listOf(0..0, 1..2))
+        assertEquals(listOf(listOf(300), listOf(400, 500)), parts.map(::widths))
+    }
 }

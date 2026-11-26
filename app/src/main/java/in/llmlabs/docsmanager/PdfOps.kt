@@ -7,6 +7,9 @@ interface PdfOps {
      * Throws [LockedPdfException] naming the first password-protected input.
      */
     fun merge(inputs: List<ByteArray>): ByteArray
+
+    /** Makes one new PDF per range of 0-based page indexes (see [parsePageRanges]). Throws [LockedPdfException] if [input] is locked. */
+    fun split(input: ByteArray, ranges: List<IntRange>): List<ByteArray>
 }
 
 /**

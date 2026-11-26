@@ -21,6 +21,18 @@ class MuPdfOps : PdfOps {
         }
     }
 
+    override fun split(input: ByteArray, ranges: List<IntRange>): List<ByteArray> = withPdf(input) { src ->
+        ranges.map { range ->
+            val out = PDFDocument()
+            try {
+                for (i in range) out.graftPage(-1, src, i)
+                out.toBytes()
+            } finally {
+                out.destroy()
+            }
+        }
+    }
+
     private inline fun <T> withPdf(bytes: ByteArray, index: Int = 0, block: (PDFDocument) -> T): T {
         val doc = Document.openDocument(bytes, "application/pdf")
         try {
