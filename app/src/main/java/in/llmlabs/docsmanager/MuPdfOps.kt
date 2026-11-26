@@ -10,8 +10,8 @@ class MuPdfOps : PdfOps {
     override fun merge(inputs: List<ByteArray>): ByteArray {
         val out = PDFDocument()
         try {
-            for (bytes in inputs) {
-                withPdf(bytes) { src ->
+            inputs.forEachIndexed { index, bytes ->
+                withPdf(bytes, index) { src ->
                     for (i in 0 until src.countPages()) out.graftPage(-1, src, i) // -1 appends at the end
                 }
             }
@@ -21,9 +21,10 @@ class MuPdfOps : PdfOps {
         }
     }
 
-    private inline fun <T> withPdf(bytes: ByteArray, block: (PDFDocument) -> T): T {
+    private inline fun <T> withPdf(bytes: ByteArray, index: Int = 0, block: (PDFDocument) -> T): T {
         val doc = Document.openDocument(bytes, "application/pdf")
         try {
+            if (doc.needsPassword()) throw LockedPdfException(index)
             val pdf = doc.asPDF() ?: throw IllegalArgumentException("Not a PDF")
             return block(pdf)
         } finally {

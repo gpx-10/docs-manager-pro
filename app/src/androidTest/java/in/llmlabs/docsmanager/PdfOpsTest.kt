@@ -3,6 +3,7 @@ package `in`.llmlabs.docsmanager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -23,5 +24,13 @@ class PdfOpsTest {
     fun mergeJoinsDocumentsInOrder() {
         val result = ops.merge(listOf(fixture("mixed-sizes.pdf"), fixture("letter-two.pdf")))
         assertEquals(listOf(300, 400, 500, 612, 612), widths(result))
+    }
+
+    @Test
+    fun mergeNamesTheFirstLockedInput() {
+        val e = assertThrows(LockedPdfException::class.java) {
+            ops.merge(listOf(fixture("three-pages.pdf"), fixture("locked-secret.pdf")))
+        }
+        assertEquals(1, e.index)
     }
 }
