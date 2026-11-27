@@ -38,6 +38,8 @@ data class PickedPdf(
     val pages: Int? = null,
     val locked: Boolean = false,
     val error: String? = null,
+    /** Shown instead of the page count, for example "Pages 1-3 · 3 pages". */
+    val detail: String? = null,
 ) {
     val ready get() = bytes != null && pages != null && !locked && error == null
 }
@@ -60,7 +62,7 @@ suspend fun loadPicked(context: Context, uri: Uri): PickedPdf = withContext(Disp
 }
 
 /** A Result the tool saved, shown with Open and Share. */
-data class SavedResult(val uri: Uri, val name: String, val pages: Int)
+data class SavedResult(val uri: Uri, val name: String, val pages: Int, val detail: String? = null)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -107,7 +109,7 @@ fun PickedRow(file: PickedPdf, trailing: @Composable RowScope.() -> Unit = {}) {
                     file.error != null -> Text(file.error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     file.locked -> Text("Password protected. Remove it, or unlock it first.", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                     file.pages == null -> Text("Reading…", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                    else -> Text(pagesText(file.pages), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                    else -> Text(file.detail ?: pagesText(file.pages), color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
                 }
             }
             trailing()
@@ -133,7 +135,7 @@ fun ResultsPanel(results: List<SavedResult>, onOpen: (Uri) -> Unit, onAgain: () 
             }
         }
         results.forEach { r ->
-            PickedRow(PickedPdf(r.uri, r.name, pages = r.pages)) {
+            PickedRow(PickedPdf(r.uri, r.name, pages = r.pages, detail = r.detail)) {
                 IconButton(onClick = { shareFiles(context, listOf(r.uri)) }) { Icon(Icons.Outlined.Share, "Share ${r.name}") }
                 TextButton(onClick = { onOpen(r.uri) }) { Text("Open") }
             }

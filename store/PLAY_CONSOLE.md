@@ -1,4 +1,4 @@
-# Google Play submission: Docs Manager Pro 1.0.0
+# Google Play submission: Docs Manager Pro 1.1.0
 
 Every answer below matches what the app does in version 1.0.0 (package `in.llmlabs.docsmanager`).
 Copy them into Play Console as written. If the app changes, update this file first.
@@ -114,7 +114,12 @@ More document tools from LLM Labs are on the way in free updates.
 
 - **App icon:** `store/listing/icon-512.png` (512 × 512, 32-bit PNG)
 - **Feature graphic:** `store/listing/feature-graphic.png` (1024 × 500)
-- **Phone screenshots:** `store/listing/phone-1-home.png` … `phone-5-ebook.png` (1080 × 1920, in this order). The Home screenshot shows the 1.0.0 quick actions; retake it for 1.1.0 if you want Merge and Split visible.
+- **Video (optional):** upload `store/promo-video.mp4` (1920 × 1080, 1 min 19 s, no sound) to YouTube as **Public** or **Unlisted** with ads turned off, then paste its link. Play needs a YouTube link, not a file. This is separate from the All files access video.
+- **Phone screenshots (8):** `store/listing/phone-1-home.png` … `phone-8-files.png` (1080 × 1920), in this order: Home, PDF viewer, Merge, Split, Saved results, Night mode, E-book, Files
+- **7-inch tablet screenshots:** `store/listing/tablet-7/` (1200 × 1920): home, files, viewer, night
+- **10-inch tablet screenshots:** `store/listing/tablet-10/` (1600 × 2560): home, files, viewer, night
+- Tablet screenshots are optional, but without them Play doesn't feature the app on tablets.
+- The HTML used to lay out the screenshots, feature graphic and video cards is in `store/art/`.
 - **App category:** Productivity
 - **Tags:** pick from Play's list. Closest: PDF reader, Document management, File management, E-book reader
 - **Contact email:** trestle1011@gmail.com

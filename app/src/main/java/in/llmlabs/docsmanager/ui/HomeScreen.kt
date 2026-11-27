@@ -213,7 +213,7 @@ private fun HeroCard(openPicker: () -> Unit) {
         Column {
             Text("All your documents, one app", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
             Spacer(Modifier.height(6.dp))
-            Text("Read, organize, convert and sign. Your files stay on your device.", color = Color(0xFFDDE3FF), style = MaterialTheme.typography.bodyMedium)
+            Text("Read PDFs and e-books, and merge or split PDFs. Your files stay on your device.", color = Color(0xFFDDE3FF), style = MaterialTheme.typography.bodyMedium)
             Spacer(Modifier.height(14.dp))
             Button(onClick = openPicker, colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF2B3FB8))) {
                 Icon(Icons.Outlined.FileOpen, null, Modifier.size(18.dp))

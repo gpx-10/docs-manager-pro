@@ -82,7 +82,10 @@ fun SplitScreen(onBack: () -> Unit, onOpenResult: (Uri) -> Unit, ops: PdfOps = r
                     val label = if (r.first == r.last) "page ${r.first + 1}" else "pages ${r.first + 1}-${r.last + 1}"
                     val fileName = "$base ($label).pdf"
                     val uri = withContext(Dispatchers.IO) { ResultFiles.savePdf(context, fileName, bytes) }
-                    saved += SavedResult(uri, DocumentFiles.displayName(context, uri) ?: fileName, r.last - r.first + 1)
+                    val count = r.last - r.first + 1
+                    // Long names get cut off, so say which pages each file holds on its second line.
+                    val detail = if (count == 1) "Page ${r.first + 1}" else "Pages ${r.first + 1}-${r.last + 1} · ${pagesText(count)}"
+                    saved += SavedResult(uri, DocumentFiles.displayName(context, uri) ?: fileName, count, detail)
                 }
                 results = saved
             } catch (e: LockedPdfException) {
