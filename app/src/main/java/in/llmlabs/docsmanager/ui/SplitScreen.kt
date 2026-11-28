@@ -106,7 +106,7 @@ fun SplitScreen(onBack: () -> Unit, onOpenResult: (Uri) -> Unit, ops: PdfOps = r
         bottomBar = {
             if (results == null && f != null) {
                 Surface(tonalElevation = 3.dp) {
-                    Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
+                    Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(16.dp)) {
                         Button(onClick = ::split, enabled = ranges != null && !busy, modifier = Modifier.fillMaxWidth()) {
                             if (busy) {
                                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)

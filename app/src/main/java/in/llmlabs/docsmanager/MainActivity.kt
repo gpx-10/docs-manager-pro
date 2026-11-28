@@ -24,6 +24,7 @@ import `in`.llmlabs.docsmanager.ui.DocsTheme
 import `in`.llmlabs.docsmanager.ui.HomeScreen
 import `in`.llmlabs.docsmanager.ui.MergeScreen
 import `in`.llmlabs.docsmanager.ui.SplitScreen
+import `in`.llmlabs.docsmanager.ui.*
 import `in`.llmlabs.docsmanager.ui.ToolScreen
 import `in`.llmlabs.docsmanager.ui.ViewerScreen
 
@@ -64,9 +65,22 @@ class MainActivity : ComponentActivity() {
                     // The tool stays underneath while a Result is open, so Back returns to it with its results intact.
                     Box(Modifier.fillMaxSize()) {
                         val openResult: (Uri) -> Unit = { opened = Opened(it, fromOtherApp = false) }
+                        val back = { tool = null; refresh() }
                         when (t) {
-                            ToolScreen.Merge -> MergeScreen(onBack = { tool = null; refresh() }, onOpenResult = openResult)
-                            ToolScreen.Split -> SplitScreen(onBack = { tool = null; refresh() }, onOpenResult = openResult)
+                            ToolScreen.Merge -> MergeScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Split -> SplitScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Organize -> OrganizeScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Rotate -> RotateScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Extract -> ExtractPagesScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Remove -> RemovePagesScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Compress -> CompressScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Protect -> ProtectScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Unlock -> UnlockScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Repair -> RepairScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Metadata -> MetadataScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Watermark -> WatermarkScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.PageNumbers -> PageNumbersScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Crop -> CropScreen(onBack = back, onOpenResult = openResult)
                         }
                         if (o != null) Viewer(o)
                     }

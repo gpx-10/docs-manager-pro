@@ -79,7 +79,7 @@ fun MergeScreen(onBack: () -> Unit, onOpenResult: (Uri) -> Unit, ops: PdfOps = r
         bottomBar = {
             if (results == null && files.isNotEmpty()) {
                 Surface(tonalElevation = 3.dp) {
-                    Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp)) {
+                    Column(Modifier.fillMaxWidth().navigationBarsPadding().imePadding().padding(16.dp)) {
                         Button(onClick = ::merge, enabled = canMerge, modifier = Modifier.fillMaxWidth()) {
                             if (busy) {
                                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)

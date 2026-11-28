@@ -26,6 +26,9 @@ interface OpenDocument : AutoCloseable {
 
     /** Draws page [index] (0-based) scaled to [widthPx] wide, keeping its proportions. */
     fun renderPage(index: Int, widthPx: Int): android.graphics.Bitmap
+
+    /** The text on page [index] (0-based), in reading order. Empty for scans and images. */
+    fun pageText(index: Int): String
 }
 
 /** A page's width and height in points (1/72 inch). */

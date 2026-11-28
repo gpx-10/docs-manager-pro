@@ -83,6 +83,13 @@ class DocumentEngineTest {
         }
     }
 
+    @Test
+    fun readsTheTextOfAPage() {
+        engine.open(fixture("mixed-sizes.pdf"), "mixed-sizes.pdf").use { doc ->
+            assertEquals("Width 400", doc.pageText(1).trim())
+        }
+    }
+
     private fun hasDarkPixel(b: android.graphics.Bitmap, xs: IntRange, ys: IntRange): Boolean =
         xs.any { x -> ys.any { y -> android.graphics.Color.luminance(b.getPixel(x, y)) < 0.5f } }
 }

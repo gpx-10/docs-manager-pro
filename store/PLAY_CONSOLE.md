@@ -1,4 +1,4 @@
-# Google Play submission: Docs Manager Pro 1.1.0
+# Google Play submission: Docs Manager Pro 1.2.0
 
 Every answer below matches what the app does in version 1.0.0 (package `in.llmlabs.docsmanager`).
 Copy them into Play Console as written. If the app changes, update this file first.
@@ -93,9 +93,11 @@ READ
 • Opens password-protected PDFs
 • Picks up on the page where you left off
 
-TOOLS
-• Merge PDF: join several PDFs into one, in the order you choose
-• Split PDF: break a PDF into parts by page ranges, or one file per page
+TOOLS (all on your phone, nothing uploaded)
+• Merge, Split, Organize pages (reorder, turn, delete, add blank pages), Rotate, Extract pages and Remove pages
+• Compress PDF to make files smaller, and Repair PDF to rebuild damaged files
+• Protect PDF with a password, or Unlock a PDF whose password you know
+• Watermark, Page numbers, Crop margins and Edit metadata (title, author, keywords)
 • Results are saved as new files in Download/Docs Manager Pro; your originals are never changed
 
 FIND
@@ -137,6 +139,12 @@ New personal developer accounts must run a **closed test with at least 12 tester
 ```
 <en-US>
 First release: read PDFs, e-books, XPS, comics and images. Night mode, e-book text size, recent files that reopen where you left off, and folders, or optionally every document on your phone in one list. No ads, no account, no internet.
+</en-US>
+```
+   1.2.0 notes:
+```
+<en-US>
+12 new PDF tools: Organize pages, Rotate, Extract pages, Remove pages, Compress, Repair, Protect with a password, Unlock, Watermark, Page numbers, Crop and Edit metadata. Everything runs on your phone and saves new files to Download/Docs Manager Pro.
 </en-US>
 ```
    1.1.0 notes:

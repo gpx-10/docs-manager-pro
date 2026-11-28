@@ -40,6 +40,16 @@ private class MuPdfDocument(private val doc: Document) : OpenDocument {
             page.destroy()
         }
     }
+    override fun pageText(index: Int): String {
+        val page = doc.loadPage(index)
+        try {
+            val text = page.toStructuredText()
+            try { return text.asText() } finally { text.destroy() }
+        } finally {
+            page.destroy()
+        }
+    }
+
     override fun close() = doc.destroy()
 }
 
