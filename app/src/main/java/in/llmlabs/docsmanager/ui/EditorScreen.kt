@@ -5,6 +5,14 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.foundation.gestures.calculateZoom
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateCentroid
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -110,6 +118,12 @@ fun EditorScreen(start: Uri?, onBack: () -> Unit, onOpenResult: (Uri) -> Unit, o
     var savedResult by remember { mutableStateOf<SavedResult?>(null) }
     var confirmLeave by remember { mutableStateOf(false) }
     val lines = remember { mutableStateMapOf<Int, List<TextLine>>() }
+    // Zoom: [zoom] follows the fingers; pages are redrawn sharp at [renderZoom] once a pinch ends.
+    var zoom by remember { mutableStateOf(1f) }
+    var renderZoom by remember { mutableStateOf(1f) }
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    val hScroll = rememberScrollState()
+    fun zoomTo(z: Float) { zoom = z.coerceIn(1f, 4f); renderZoom = zoom }
 
     fun load(uri: Uri) {
         busy = true
@@ -224,11 +238,49 @@ fun EditorScreen(start: Uri?, onBack: () -> Unit, onOpenResult: (Uri) -> Unit, o
                             Spacer(Modifier.width(8.dp))
                             Text(tool.hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimaryContainer, modifier = Modifier.weight(1f))
                             if (busy) CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+                            IconButton(onClick = { zoomTo(zoom / 1.5f) }, enabled = zoom > 1.01f, modifier = Modifier.size(32.dp)) { Icon(Icons.Outlined.ZoomOut, "Zoom out", Modifier.size(20.dp)) }
+                            Text(
+                                "${(zoom * 100).toInt()}%", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { zoomTo(1f) }.padding(horizontal = 4.dp, vertical = 2.dp),
+                            )
+                            IconButton(onClick = { zoomTo(zoom * 1.5f) }, enabled = zoom < 3.99f, modifier = Modifier.size(32.dp)) { Icon(Icons.Outlined.ZoomIn, "Zoom in", Modifier.size(20.dp)) }
                         }
                     }
-                    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
-                        val widthPx = with(LocalDensity.current) { (maxWidth - 24.dp).toPx().toInt() }.coerceAtLeast(100)
-                        LazyColumn(contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    BoxWithConstraints(
+                        Modifier.weight(1f).fillMaxWidth().clipToBounds().pointerInput(Unit) {
+                            // Two fingers zoom and move the pages; one finger stays with the chosen tool.
+                            awaitEachGesture {
+                                awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                                var pinched = false
+                                while (true) {
+                                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                                    if (event.changes.count { it.pressed } >= 2) {
+                                        pinched = true
+                                        val c = event.calculateCentroid(useCurrent = false)
+                                        val newZoom = (zoom * event.calculateZoom()).coerceIn(1f, 4f)
+                                        val f = newZoom / zoom
+                                        if (f != 1f) {
+                                            zoom = newZoom
+                                            listState.dispatchRawDelta((f - 1f) * (listState.firstVisibleItemScrollOffset + c.y))
+                                            val target = ((hScroll.value + c.x) * f - c.x).toInt()
+                                            scope.launch { hScroll.scrollTo(target) }
+                                        }
+                                        val pan = event.calculatePan()
+                                        listState.dispatchRawDelta(-pan.y)
+                                        hScroll.dispatchRawDelta(-pan.x)
+                                        event.changes.forEach { it.consume() }
+                                    }
+                                    if (event.changes.none { it.pressed }) break
+                                }
+                                if (pinched) renderZoom = zoom
+                            }
+                        },
+                    ) {
+                        val viewW = maxWidth
+                        // Pages are drawn at most 2600 px wide, sharp enough at any zoom without running out of memory.
+                        val widthPx = with(LocalDensity.current) { (viewW * renderZoom - 24.dp).toPx().toInt() }.coerceIn(100, 2600)
+                        Box(Modifier.fillMaxSize().horizontalScroll(hScroll, enabled = zoom > 1.01f)) {
+                        LazyColumn(state = listState, modifier = Modifier.width(viewW * zoom).fillMaxHeight(), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             items(sizes.indices.toList(), key = { it }) { page ->
                                 PageSurface(
                                     bytes = b, version = version, page = page, size = sizes[page], widthPx = widthPx, worker = worker, scope = scope,
@@ -261,6 +313,7 @@ fun EditorScreen(start: Uri?, onBack: () -> Unit, onOpenResult: (Uri) -> Unit, o
                                     onStroke = { points -> apply { ops.addInk(it, page, listOf(points), ink.toArgb(), 2.5f) } },
                                 )
                             }
+                        }
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-# Google Play submission: Docs Manager Pro 1.4.0
+# Google Play submission: Docs Manager Pro 1.4.1
 
 Every answer below matches what the app does in version 1.0.0 (package `in.llmlabs.docsmanager`).
 Copy them into Play Console as written. If the app changes, update this file first.
@@ -87,7 +87,8 @@ Docs Manager Pro is a private PDF editor, converter and document reader. Everyth
 EDIT PDF, RIGHT ON THE PAGE
 • Change existing text: tap a line and type
 • Add new text, highlights, freehand drawing, boxes and comment notes
-• Sign: draw or type your signature and place it anywhere
+• Sign: draw, type or upload a photo of your signature and place it anywhere
+• Pinch to zoom in for precise edits
 • Add images, white-out mistakes, and redact private details for good
 • Undo any change; saving makes a new file and leaves your original untouched
 
@@ -118,7 +119,7 @@ PRIVATE BY DESIGN
 - **App icon:** `store/listing/icon-512.png` (512 × 512, 32-bit PNG)
 - **Feature graphic:** `store/listing/feature-graphic.png` (1024 × 500)
 - **Video (optional):** `store/promo-video.mp4` shows the 1.3 design; leave the Video field empty for 1.4.0, or record a new one before adding it. (The All files access declaration video is separate and still valid.)
-- **Phone screenshots (7):** `store/listing/phone-1-home.png` … `phone-7-files.png` (1080 × 1920), in this order: Home, Edit PDF, Convert, Office files, PDF reader, Tools, Files
+- **Phone screenshots (7):** `store/listing/phone-1-home.png` … `phone-7-files.png` (1080 × 1920), in this order: Home, Edit PDF, Convert, Office files, PDF reader, Tools, Files (Home shows the 1.4.1 layout)
 - **7-inch tablet screenshots:** `store/listing/tablet-7/` (1200 × 1920): home, editor, convert, viewer, word
 - **10-inch tablet screenshots:** `store/listing/tablet-10/` (1600 × 2560): home, editor, convert, viewer, word
 - Tablet screenshots are optional, but without them Play doesn't feature the app on tablets.
@@ -142,10 +143,10 @@ New personal developer accounts must run a **closed test with at least 12 tester
 First release: read PDFs, e-books, XPS, comics and images. Night mode, e-book text size, recent files that reopen where you left off, and folders, or optionally every document on your phone in one list. No ads, no account, no internet.
 </en-US>
 ```
-   1.4.0 notes:
+   1.4.1 notes (use these for 1.4.0 too):
 ```
 <en-US>
-New: edit PDFs right on the page (change text, add text, highlight, draw, sign, images, white-out, redact), convert PDF to and from Word, Excel and PowerPoint, OCR, PDF/A, Compare, and open Office files. Fresh design. Still fully offline.
+New: edit PDFs right on the page (change text, add text, highlight, draw, sign or upload your signature, images, white-out, redact, pinch to zoom), convert PDF to and from Word, Excel and PowerPoint, OCR, PDF/A, Compare, and open Office files. Fresh design. Still fully offline.
 </en-US>
 ```
    1.3.0 notes:

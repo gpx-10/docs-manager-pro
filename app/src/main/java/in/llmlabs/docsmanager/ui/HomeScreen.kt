@@ -188,25 +188,17 @@ private fun HomeTab(
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
+        item(span = { GridItemSpan(maxLineSpan) }) { OpenFileCard(openPicker) }
         item(span = { GridItemSpan(maxLineSpan) }) {
-            Text("What would you like to do?", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(top = 4.dp, bottom = 2.dp))
-        }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            FeatureCard(
-                Icons.Outlined.EditNote, "Edit PDF", "Open a PDF and change it right on the page.",
-                listOf(Color(0xFF4F6DF5), Color(0xFF2B3FB8)), listOf("Edit text", "Add text", "Highlight", "Sign", "Draw", "Images", "Redact"),
-            ) { onOpenTool(ToolScreen.Editor) }
-        }
-        item(span = { GridItemSpan(maxLineSpan) }) {
-            FeatureCard(
-                Icons.Outlined.SwapHoriz, "Convert", "Turn PDFs into Office files and images, and back again.",
-                listOf(Color(0xFF7B61FF), Color(0xFF3B5BDB)), listOf("PDF to Word", "PDF to Excel", "PowerPoint", "Images", "Scan", "OCR"),
-            ) { onOpenTool(ToolScreen.ConvertHub) }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                FeatureSquare(Icons.Outlined.EditNote, "Edit PDF", "Text, sign, highlight", listOf(Color(0xFF4F6DF5), Color(0xFF2B3FB8)), Modifier.weight(1f)) { onOpenTool(ToolScreen.Editor) }
+                FeatureSquare(Icons.Outlined.SwapHoriz, "Convert", "Word, Excel, images", listOf(Color(0xFF7B61FF), Color(0xFF3B5BDB)), Modifier.weight(1f)) { onOpenTool(ToolScreen.ConvertHub) }
+            }
         }
         item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Quick actions", null) {} }
-        item { QuickAction(Icons.Outlined.FileOpen, "Open a file", openPicker) }
         item { QuickAction(Icons.Outlined.DocumentScanner, "Scan") { onOpenTool(ToolScreen.Scan) } }
         item { QuickAction(Icons.Outlined.MergeType, "Merge PDF") { onOpenTool(ToolScreen.Merge) } }
+        item { QuickAction(Icons.Outlined.CallSplit, "Split PDF") { onOpenTool(ToolScreen.Split) } }
         item { QuickAction(Icons.Outlined.Compress, "Compress") { onOpenTool(ToolScreen.Compress) } }
         item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Recent", if (recent.size > 5) "See all" else null, showFiles) }
         if (recent.isEmpty()) {
@@ -222,33 +214,37 @@ private fun HomeTab(
     }
 }
 
-/** One of the two big entry points on Home, on a gradient: Edit PDF and Convert. */
+/** The first thing on Home: open any document. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun FeatureCard(icon: ImageVector, title: String, text: String, colors: List<Color>, examples: List<String>, onClick: () -> Unit) {
-    Surface(onClick = onClick, shape = RoundedCornerShape(24.dp), color = Color.Transparent, modifier = Modifier.fillMaxWidth()) {
-        Box(Modifier.fillMaxWidth().background(Brush.linearGradient(colors)).padding(22.dp)) {
-            Column {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(60.dp).clip(RoundedCornerShape(18.dp)).background(Color.White.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-                        Icon(icon, null, tint = Color.White, modifier = Modifier.size(34.dp))
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    Text(title, style = MaterialTheme.typography.headlineMedium, color = Color.White, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Color.White, modifier = Modifier.size(30.dp))
-                }
-                Spacer(Modifier.height(14.dp))
-                Text(text, style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.92f))
-                Spacer(Modifier.height(14.dp))
-                @OptIn(ExperimentalLayoutApi::class)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    examples.forEach {
-                        Text(
-                            it, color = Color.White, style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.16f)).padding(horizontal = 10.dp, vertical = 5.dp),
-                        )
-                    }
-                }
+private fun OpenFileCard(onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+                Icon(Icons.Outlined.FileOpen, null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text("Open a file", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text("PDF, Word, Excel, PowerPoint, e-books, images", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Edit PDF and Convert: square gradient tiles side by side, with an icon tile like the quick actions. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun FeatureSquare(icon: ImageVector, title: String, text: String, colors: List<Color>, modifier: Modifier, onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(20.dp), color = Color.Transparent, modifier = modifier.aspectRatio(1f)) {
+        Box(Modifier.fillMaxSize().background(Brush.linearGradient(colors)).padding(16.dp)) {
+            Box(Modifier.size(52.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.2f)), contentAlignment = Alignment.Center) {
+                Icon(icon, null, tint = Color.White, modifier = Modifier.size(28.dp))
+            }
+            Column(Modifier.align(Alignment.BottomStart)) {
+                Text(title, style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.SemiBold)
+                Text(text, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.9f), maxLines = 2)
             }
         }
     }

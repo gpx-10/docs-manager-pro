@@ -18,8 +18,8 @@ android {
         applicationId = "in.llmlabs.docsmanager"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "1.4.0"
+        versionCode = 6
+        versionName = "1.4.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Phones are ARM. Leaving out x86 halves the APK; Play's App Bundle then ships one ARM type per phone.
         ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
