@@ -2,6 +2,8 @@ package `in`.llmlabs.docsmanager
 
 import com.artifex.mupdf.fitz.ColorSpace
 import com.artifex.mupdf.fitz.Document
+import com.artifex.mupdf.fitz.Image
+import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 import com.artifex.mupdf.fitz.DrawDevice
 import com.artifex.mupdf.fitz.Matrix
 import com.artifex.mupdf.fitz.Pixmap
@@ -211,6 +213,78 @@ class MuPdfOps : PdfOps {
         pdf.toBytes("garbage=4,compress")
     }
 
+    override fun imagesToPdf(images: List<ByteArray>, page: ImagePage): ByteArray {
+        require(images.isNotEmpty()) { "Choose at least one image" }
+        val out = PDFDocument()
+        try {
+            images.forEachIndexed { n, original ->
+                // MuPDF reads JPG, PNG and a few others; HEIC, WebP and the rest go through Android's
+                // decoder first, which also applies the camera's turn.
+                val bytes = if (AndroidImageOps.formatName(original) in setOf("JPG", "PNG")) original else try {
+                    val b = AndroidImageOps.decode(original)
+                    try { AndroidImageOps.encodeBytes(b, ImageFormat.Jpeg, 92) } finally { b.recycle() }
+                } catch (e: IllegalArgumentException) {
+                    throw IllegalArgumentException("Image ${n + 1}: ${e.message}")
+                }
+                val image = try { Image(bytes) } catch (e: Exception) { throw IllegalArgumentException("Image ${n + 1} can't be read") }
+                try {
+                    // MuPDF numbers orientations its own way, so read the camera's EXIF value directly.
+                    val orientation = exifOrientation(bytes)
+                    val turned = orientation in 5..8 // these swap width and height
+                    var w = (if (turned) image.height else image.width).toFloat()
+                    var h = (if (turned) image.width else image.height).toFloat()
+                    // Very large photos would make huge pages; keep "own size" pages within A3.
+                    if (page.width == null && maxOf(w, h) > 1191f) { val k = 1191f / maxOf(w, h); w *= k; h *= k }
+                    val pw = page.width ?: w
+                    val ph = page.height ?: h
+                    val margin = if (page.width == null) 0f else 24f
+                    val k = minOf((pw - 2 * margin) / w, (ph - 2 * margin) / h, if (page.width == null) 1f else Float.MAX_VALUE)
+                    val dw = w * k; val dh = h * k
+                    val x = (pw - dw) / 2; val y = (ph - dh) / 2
+                    val resources = out.newDictionary()
+                    val xobjects = out.newDictionary()
+                    xobjects.put("Im0", out.addImage(image))
+                    resources.put("XObject", xobjects)
+                    val m = placeImage(orientation, x, y, dw, dh).joinToString(" ") { "%.3f".format(java.util.Locale.ROOT, it) }
+                    out.insertPage(-1, out.addPage(Rect(0f, 0f, pw, ph), 0, resources, "q $m cm /Im0 Do Q"))
+                } finally {
+                    image.destroy()
+                }
+            }
+            return out.toBytes()
+        } finally {
+            out.destroy()
+        }
+    }
+
+    /**
+     * The matrix that draws an image's unit square into the box ([x], [y], [w], [h]) as it should be
+     * seen, for EXIF [orientation] 1 to 8 (0 = unknown, treated as 1).
+     */
+    private fun placeImage(orientation: Int, x: Float, y: Float, w: Float, h: Float): FloatArray = when (orientation) {
+        2 -> floatArrayOf(-w, 0f, 0f, h, x + w, y)       // mirrored left to right
+        3 -> floatArrayOf(-w, 0f, 0f, -h, x + w, y + h)  // upside down
+        4 -> floatArrayOf(w, 0f, 0f, -h, x, y + h)       // mirrored top to bottom
+        5 -> floatArrayOf(0f, -h, -w, 0f, x + w, y + h)  // mirrored and turned
+        6 -> floatArrayOf(0f, -h, w, 0f, x, y + h)       // turn 90° clockwise to view
+        7 -> floatArrayOf(0f, h, w, 0f, x, y)            // mirrored and turned
+        8 -> floatArrayOf(0f, h, -w, 0f, x + w, y)       // turn 90° anticlockwise to view
+        else -> floatArrayOf(w, 0f, 0f, h, x, y)
+    }
+
+    override fun pdfToImages(input: ByteArray, dpi: Int, format: ImageFormat): List<ByteArray> = withPdf(input) { pdf ->
+        (0 until pdf.countPages()).map { i ->
+            pdf.loadPage(i).use { page ->
+                val bitmap = AndroidDrawDevice.drawPage(page, Matrix(dpi / 72f))
+                try {
+                    java.io.ByteArrayOutputStream().also { encode(bitmap, format, 90, it) }.toByteArray()
+                } finally {
+                    bitmap.recycle()
+                }
+            }
+        }
+    }
+
     private inline fun <T> withPdf(bytes: ByteArray, index: Int = 0, block: (PDFDocument) -> T): T {
         val doc = Document.openDocument(bytes, "application/pdf")
         try {
@@ -266,3 +340,26 @@ internal class MemoryStream : SeekableInputOutputStream {
 
 /** Runs [block] on a loaded page and frees it. */
 internal inline fun <T> Page.use(block: (Page) -> T): T = try { block(this) } finally { destroy() }
+
+/** Writes [bitmap] as [format]; JPEG has no transparency, so it is drawn on white first. */
+internal fun encode(bitmap: android.graphics.Bitmap, format: ImageFormat, quality: Int, out: java.io.OutputStream) {
+    val compress = when (format) {
+        ImageFormat.Jpeg -> android.graphics.Bitmap.CompressFormat.JPEG
+        ImageFormat.Png -> android.graphics.Bitmap.CompressFormat.PNG
+        ImageFormat.Webp -> if (android.os.Build.VERSION.SDK_INT >= 30) android.graphics.Bitmap.CompressFormat.WEBP_LOSSY else @Suppress("DEPRECATION") android.graphics.Bitmap.CompressFormat.WEBP
+    }
+    if (format == ImageFormat.Jpeg && bitmap.hasAlpha()) {
+        val flat = android.graphics.Bitmap.createBitmap(bitmap.width, bitmap.height, android.graphics.Bitmap.Config.ARGB_8888)
+        android.graphics.Canvas(flat).apply { drawColor(android.graphics.Color.WHITE); drawBitmap(bitmap, 0f, 0f, null) }
+        flat.compress(compress, quality, out)
+        flat.recycle()
+    } else {
+        bitmap.compress(compress, quality, out)
+    }
+}
+
+/** The EXIF orientation (1 to 8) saved by the camera, or 1 when there is none. */
+internal fun exifOrientation(bytes: ByteArray): Int = runCatching {
+    android.media.ExifInterface(java.io.ByteArrayInputStream(bytes))
+        .getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, android.media.ExifInterface.ORIENTATION_NORMAL)
+}.getOrDefault(1)

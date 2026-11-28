@@ -4,11 +4,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.ui.graphics.vector.ImageVector
 
-enum class ToolGroup(val title: String) { View("View & read"), Organize("Organize"), Optimize("Optimize & secure"), Edit("Edit & sign"), Convert("Convert"), Ai("AI") }
+enum class ToolGroup(val title: String) { View("View & read"), Organize("Organize"), Optimize("Optimize & secure"), Edit("Edit & sign"), Convert("Convert"), Image("Image tools"), Ai("AI") }
 
 /** A Tool as on llmlabs.in. [ready] is false until it is built and tested in the app. */
 /** Tool screens that are built. A Tool without one is either "Open & read" (the file picker) or not ready yet. */
-enum class ToolScreen { Merge, Split, Organize, Rotate, Extract, Remove, Compress, Protect, Unlock, Repair, Metadata, Watermark, PageNumbers, Crop }
+enum class ToolScreen { Merge, Split, Organize, Rotate, Extract, Remove, Compress, Protect, Unlock, Repair, Metadata, Watermark, PageNumbers, Crop, ImagesToPdf, Scan, PdfToImages, CompressImage, ResizeImage, CropImage, RotateImage, WatermarkImage, ConvertImage, HeicToJpg }
 
 data class Tool(
     val title: String,
@@ -41,9 +41,16 @@ val TOOLS = listOf(
     Tool("Page numbers", "Number every page", Icons.Outlined.FormatListNumbered, ToolGroup.Edit, ready = true, screen = ToolScreen.PageNumbers),
     Tool("Crop PDF", "Trim page margins", Icons.Outlined.Crop, ToolGroup.Edit, ready = true, screen = ToolScreen.Crop),
     Tool("Compare PDF", "Spot the differences", Icons.Outlined.Compare, ToolGroup.Edit),
-    Tool("Scan to PDF", "Use the camera", Icons.Outlined.DocumentScanner, ToolGroup.Convert),
-    Tool("Images to PDF", "Photos into one PDF", Icons.Outlined.Image, ToolGroup.Convert),
-    Tool("PDF to images", "Save pages as pictures", Icons.Outlined.Photo, ToolGroup.Convert),
+    Tool("Scan to PDF", "Use the camera", Icons.Outlined.DocumentScanner, ToolGroup.Convert, ready = true, screen = ToolScreen.Scan),
+    Tool("Images to PDF", "Photos into one PDF", Icons.Outlined.Image, ToolGroup.Convert, ready = true, screen = ToolScreen.ImagesToPdf),
+    Tool("PDF to images", "Save pages as pictures", Icons.Outlined.Photo, ToolGroup.Convert, ready = true, screen = ToolScreen.PdfToImages),
+    Tool("Compress image", "Make JPG, PNG, WebP smaller", Icons.Outlined.PhotoSizeSelectSmall, ToolGroup.Image, ready = true, screen = ToolScreen.CompressImage),
+    Tool("Resize image", "By pixels or percent", Icons.Outlined.AspectRatio, ToolGroup.Image, ready = true, screen = ToolScreen.ResizeImage),
+    Tool("Crop image", "Drag a box or pick a shape", Icons.Outlined.CropFree, ToolGroup.Image, ready = true, screen = ToolScreen.CropImage),
+    Tool("Rotate image", "Turn or flip pictures", Icons.Outlined.Rotate90DegreesCw, ToolGroup.Image, ready = true, screen = ToolScreen.RotateImage),
+    Tool("Watermark image", "Stamp text on photos", Icons.Outlined.BrandingWatermark, ToolGroup.Image, ready = true, screen = ToolScreen.WatermarkImage),
+    Tool("Convert image", "JPG, PNG and WebP", Icons.Outlined.Transform, ToolGroup.Image, ready = true, screen = ToolScreen.ConvertImage),
+    Tool("HEIC to JPG", "Open iPhone photos anywhere", Icons.Outlined.PhoneIphone, ToolGroup.Image, ready = true, screen = ToolScreen.HeicToJpg),
     Tool("OCR PDF", "Make scans searchable", Icons.Outlined.TextFields, ToolGroup.Convert),
     Tool("PDF to Word", "Editable document", Icons.Outlined.Article, ToolGroup.Convert),
     Tool("PDF to Excel", "Tables into a sheet", Icons.Outlined.TableChart, ToolGroup.Convert),

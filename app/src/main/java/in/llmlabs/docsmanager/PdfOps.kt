@@ -50,6 +50,28 @@ interface PdfOps {
 
     /** Rebuilds a damaged file's structure, recovering every page that can be read. Throws if nothing can be recovered. */
     fun repair(input: ByteArray): ByteArray
+
+    /**
+     * Makes a PDF with one page per image (JPEG, PNG and other formats MuPDF reads), turned the way
+     * the camera meant (EXIF orientation). [page] sets the page size; JPEGs are kept as they are.
+     */
+    fun imagesToPdf(images: List<ByteArray>, page: ImagePage): ByteArray
+
+    /** Draws every page as an image at [dpi] (72 = actual size). Throws [LockedPdfException] if locked. */
+    fun pdfToImages(input: ByteArray, dpi: Int, format: ImageFormat): List<ByteArray>
+}
+
+/** Page size for Images to PDF. [width]/[height] in points; null means "the image's own size". */
+enum class ImagePage(val label: String, val width: Float?, val height: Float?) {
+    FitImage("Same as each image", null, null),
+    A4("A4", 595f, 842f),
+    Letter("US Letter", 612f, 792f),
+}
+
+enum class ImageFormat(val label: String, val extension: String, val mime: String) {
+    Jpeg("JPG", "jpg", "image/jpeg"),
+    Png("PNG", "png", "image/png"),
+    Webp("WebP", "webp", "image/webp"),
 }
 
 /** How hard Compress works. [dpi] and [quality] apply to images; null means images are left as they are. */

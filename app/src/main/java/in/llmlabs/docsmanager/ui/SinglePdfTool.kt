@@ -24,8 +24,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** A new PDF a tool made, before it is saved. */
-class ToolOutput(val name: String, val bytes: ByteArray, val pages: Int, val detail: String? = null)
+/** A new file a tool made, before it is saved. PDFs by default; images set [extension] and [mime]. */
+class ToolOutput(
+    val name: String,
+    val bytes: ByteArray,
+    val pages: Int,
+    val detail: String? = null,
+    val extension: String = "pdf",
+    val mime: String = "application/pdf",
+)
 
 /**
  * The screen every one-PDF tool shares: choose a PDF, set the tool's options, run it, and
@@ -80,12 +87,7 @@ fun SinglePdfTool(
         scope.launch {
             try {
                 val outputs = withContext(Dispatchers.Default) { run(src) }
-                results = withContext(Dispatchers.IO) {
-                    outputs.map { o ->
-                        val uri = ResultFiles.savePdf(context, o.name, o.bytes)
-                        SavedResult(uri, DocumentFiles.displayName(context, uri) ?: o.name, o.pages, o.detail)
-                    }
-                }
+                results = withContext(Dispatchers.IO) { saveOutputs(context, outputs) }
             } catch (e: LockedPdfException) {
                 error = "This PDF is password protected. Unlock it first."
             } catch (e: PasswordRequiredException) {

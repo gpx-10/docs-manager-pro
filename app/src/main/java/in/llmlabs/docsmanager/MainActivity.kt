@@ -81,6 +81,16 @@ class MainActivity : ComponentActivity() {
                             ToolScreen.Watermark -> WatermarkScreen(onBack = back, onOpenResult = openResult)
                             ToolScreen.PageNumbers -> PageNumbersScreen(onBack = back, onOpenResult = openResult)
                             ToolScreen.Crop -> CropScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.ImagesToPdf -> ImagesToPdfScreen(scan = false, onBack = back, onOpenResult = openResult)
+                            ToolScreen.Scan -> ImagesToPdfScreen(scan = true, onBack = back, onOpenResult = openResult)
+                            ToolScreen.PdfToImages -> PdfToImagesScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.CompressImage -> CompressImageScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.ResizeImage -> ResizeImageScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.CropImage -> CropImageScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.RotateImage -> RotateImageScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.WatermarkImage -> WatermarkImageScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.ConvertImage -> ConvertImageScreen(heicToJpg = false, onBack = back, onOpenResult = openResult)
+                            ToolScreen.HeicToJpg -> ConvertImageScreen(heicToJpg = true, onBack = back, onOpenResult = openResult)
                         }
                         if (o != null) Viewer(o)
                     }

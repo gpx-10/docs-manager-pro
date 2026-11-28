@@ -64,6 +64,12 @@ suspend fun loadPicked(context: Context, uri: Uri): PickedPdf = withContext(Disp
 /** A Result the tool saved, shown with Open and Share. */
 data class SavedResult(val uri: Uri, val name: String, val pages: Int, val detail: String? = null)
 
+/** Saves tool outputs in Download/Docs Manager Pro and returns them as Results, with the names Android actually used. */
+fun saveOutputs(context: Context, outputs: List<ToolOutput>): List<SavedResult> = outputs.map { o ->
+    val uri = ResultFiles.save(context, o.name, o.bytes, o.extension, o.mime)
+    SavedResult(uri, DocumentFiles.displayName(context, uri) ?: "${o.name}.${o.extension}", o.pages, o.detail)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ToolScaffold(title: String, onBack: () -> Unit, bottomBar: @Composable () -> Unit = {}, content: @Composable (PaddingValues) -> Unit) {
@@ -154,10 +160,20 @@ fun shareFiles(context: Context, uris: List<Uri>) {
         Intent(Intent.ACTION_SEND).putExtra(Intent.EXTRA_STREAM, links[0])
     } else {
         Intent(Intent.ACTION_SEND_MULTIPLE).putParcelableArrayListExtra(Intent.EXTRA_STREAM, links)
-    }.setType("application/pdf").addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }.setType(shareType(context, uris)).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     context.startActivity(
         Intent.createChooser(send, "Share").putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, arrayOf(ComponentName(context, MainActivity::class.java))),
     )
+}
+
+/** One type for all shared files: the exact type, any image type for a mix of images, or anything. */
+private fun shareType(context: Context, uris: List<Uri>): String {
+    val types = uris.map { context.contentResolver.getType(it) ?: "application/octet-stream" }.distinct()
+    return when {
+        types.size == 1 -> types[0]
+        types.all { it.startsWith("image/") } -> "image/*"
+        else -> "*/*"
+    }
 }
 
 /**

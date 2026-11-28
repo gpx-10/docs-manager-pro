@@ -46,4 +46,9 @@ function crc32(buf) {
   const at = ok.lastIndexOf('xref');
   const broken = at > 0 ? ok.slice(0, at) + 'xref\nGARBAGE GARBAGE\n' + ok.slice(at + 4).replace(/startxref\s*\d+/, 'startxref\n999999') : ok.replace(/startxref\s*\d+/, 'startxref\n999999');
   fs.writeFileSync(out + '/damaged.pdf', Buffer.from(broken, 'latin1'));
+
+  // wide.png: a 600x400 gradient photo. Red grows to the right, green grows downwards,
+  // so the colour in each corner shows whether an image was turned or flipped.
+  fs.writeFileSync(out + '/wide.png', photoPng(600, 400));
+  // wide.jpg, wide.heic and wide-exif6.jpg are made from wide.png by tools/make-image-fixtures.sh (macOS sips).
 })();

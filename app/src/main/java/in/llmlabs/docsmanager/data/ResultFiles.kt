@@ -16,12 +16,15 @@ object ResultFiles {
     val needsWritePermission: Boolean get() = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
 
     /** Saves [bytes] as a new PDF named [name] (".pdf" added if missing; never overwrites) and returns a link to it. */
-    fun savePdf(context: Context, name: String, bytes: ByteArray): Uri {
-        val fileName = safeName(name).let { if (it.endsWith(".pdf", ignoreCase = true)) it else "$it.pdf" }
+    fun savePdf(context: Context, name: String, bytes: ByteArray): Uri = save(context, name, bytes, "pdf", "application/pdf")
+
+    /** Saves [bytes] as a new file named [name] with [extension] added if missing; never overwrites. */
+    fun save(context: Context, name: String, bytes: ByteArray, extension: String, mime: String): Uri {
+        val fileName = safeName(name).let { if (it.endsWith(".$extension", ignoreCase = true)) it else "$it.$extension" }
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
-                put(MediaStore.Downloads.MIME_TYPE, "application/pdf")
+                put(MediaStore.Downloads.MIME_TYPE, mime)
                 put(MediaStore.Downloads.RELATIVE_PATH, "${Environment.DIRECTORY_DOWNLOADS}/$FOLDER")
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
@@ -58,10 +61,11 @@ object ResultFiles {
     private fun safeName(name: String) = name.replace(Regex("[/\\\\:*?\"<>|\\u0000]"), "_").trim().take(120).ifBlank { "Document" }
 
     private fun uniqueFile(dir: File, fileName: String): File {
-        val base = fileName.removeSuffix(".pdf")
+        val ext = fileName.substringAfterLast('.', "")
+        val base = fileName.removeSuffix(".$ext")
         var f = File(dir, fileName)
         var n = 2
-        while (f.exists()) f = File(dir, "$base ($n).pdf").also { n++ }
+        while (f.exists()) f = File(dir, "$base ($n).$ext").also { n++ }
         return f
     }
 }

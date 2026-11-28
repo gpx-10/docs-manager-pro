@@ -141,4 +141,40 @@ class PdfOpsTest {
         val result = ops.repair(fixture("damaged.pdf"))
         assertEquals(listOf("Page 1", "Page 2", "Page 3"), texts(result).map { it.trim() })
     }
+
+    @Test
+    fun imagesToPdfMakesOnePagePerImageAtItsOwnSize() {
+        val result = ops.imagesToPdf(listOf(fixture("wide.png"), fixture("wide.jpg")), ImagePage.FitImage)
+        assertEquals(listOf("600x400", "600x400"), sizes(result))
+    }
+
+    @Test
+    fun imagesToPdfTurnsPhonePhotosTheWayTheCameraMeantThem() {
+        // wide-exif6.jpg is stored 600x400 but its EXIF says "turn 90° clockwise to view".
+        val result = ops.imagesToPdf(listOf(fixture("wide-exif6.jpg")), ImagePage.FitImage)
+        assertEquals(listOf("400x600"), sizes(result))
+        // Turned clockwise, the stored bottom-left corner (no red, full green) lands top-left.
+        val (r, g, _) = corners(result)[0]
+        assertTrue("top-left was r=$r g=$g", g > 150 && r < 80)
+    }
+
+    @Test
+    fun imagesToPdfTakesIphonePhotos() {
+        val result = ops.imagesToPdf(listOf(fixture("wide.heic")), ImagePage.FitImage)
+        assertEquals(listOf("600x400"), sizes(result))
+    }
+
+    @Test
+    fun imagesToPdfCanCentreImagesOnA4Pages() {
+        val result = ops.imagesToPdf(listOf(fixture("wide.png")), ImagePage.A4)
+        assertEquals(listOf("595x842"), sizes(result))
+    }
+
+    @Test
+    fun pdfToImagesDrawsEachPageAtTheChosenSharpness() {
+        val images = ops.pdfToImages(fixture("mixed-sizes.pdf"), dpi = 144, format = ImageFormat.Png)
+        val dims = images.map { bytes: ByteArray -> android.graphics.BitmapFactory.decodeByteArray(bytes, 0, bytes.size).let { b -> "${b.width}x${b.height}" } }
+        assertEquals(listOf("600x1200", "800x1200", "1000x1200"), dims)
+        assertEquals(true, images.all { it[1] == 'P'.code.toByte() && it[2] == 'N'.code.toByte() })
+    }
 }

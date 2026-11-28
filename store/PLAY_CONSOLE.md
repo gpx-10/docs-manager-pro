@@ -1,4 +1,4 @@
-# Google Play submission: Docs Manager Pro 1.2.0
+# Google Play submission: Docs Manager Pro 1.3.0
 
 Every answer below matches what the app does in version 1.0.0 (package `in.llmlabs.docsmanager`).
 Copy them into Play Console as written. If the app changes, update this file first.
@@ -98,6 +98,11 @@ TOOLS (all on your phone, nothing uploaded)
 • Compress PDF to make files smaller, and Repair PDF to rebuild damaged files
 • Protect PDF with a password, or Unlock a PDF whose password you know
 • Watermark, Page numbers, Crop margins and Edit metadata (title, author, keywords)
+• Scan to PDF with your camera, Images to PDF, and PDF to images (JPG or PNG)
+
+IMAGE TOOLS
+• Compress, Resize, Crop, Rotate or flip, and Watermark photos
+• Convert between JPG, PNG and WebP, and turn iPhone HEIC photos into JPG
 • Results are saved as new files in Download/Docs Manager Pro; your originals are never changed
 
 FIND
@@ -139,6 +144,12 @@ New personal developer accounts must run a **closed test with at least 12 tester
 ```
 <en-US>
 First release: read PDFs, e-books, XPS, comics and images. Night mode, e-book text size, recent files that reopen where you left off, and folders, or optionally every document on your phone in one list. No ads, no account, no internet.
+</en-US>
+```
+   1.3.0 notes:
+```
+<en-US>
+New: Scan to PDF with your camera, Images to PDF, PDF to images, and 7 image tools: compress, resize, crop, rotate, watermark, convert (JPG, PNG, WebP) and HEIC to JPG. Everything still runs on your phone.
 </en-US>
 ```
    1.2.0 notes:
