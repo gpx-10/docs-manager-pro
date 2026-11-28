@@ -1,4 +1,4 @@
-# Google Play submission: Docs Manager Pro 1.3.0
+# Google Play submission: Docs Manager Pro 1.4.0
 
 Every answer below matches what the app does in version 1.0.0 (package `in.llmlabs.docsmanager`).
 Copy them into Play Console as written. If the app changes, update this file first.
@@ -69,66 +69,62 @@ Play Console asks for this after you upload the bundle (Policy → App content �
 - **Video:** https://www.youtube.com/watch?v=TrmWxzDRxI4 The video shows: the in-app card explaining the option → Allow full access → Android's All files access switch → the device-wide document list (including Download) → opening a PDF.
 
 **Describe how your app uses the permission:**
-> Docs Manager Pro is a document reader and manager. Its Files tab can list every PDF, EPUB, XPS, CBZ and image document on the device in one place, with type filters, so users can find and open their documents wherever they are stored, including the Download folder. The permission is optional. It is requested only when the user taps "Allow full access" on an in-app card that explains what it does, and the app keeps working without it (folder-by-folder access through the system picker). The app only reads files to list and display them. It never modifies, deletes or uploads files, and it has no internet permission.
+> Docs Manager Pro is a document reader and manager. Its Files tab can list every PDF, Word, Excel, PowerPoint, EPUB, XPS, CBZ and image document on the device in one place, with type filters, so users can find and open their documents wherever they are stored, including the Download folder. The permission is optional. It is requested only when the user taps "Allow full access" on an in-app card that explains what it does, and the app keeps working without it (folder-by-folder access through the system picker). The app only reads files to list and display them. Edits and conversions are always saved as new files in the app's own Download/Docs Manager Pro folder; the app never modifies, deletes or uploads the user's files, and it has no internet permission.
 
 **Why alternatives such as the Storage Access Framework or MediaStore are not enough:**
-> The Storage Access Framework cannot grant access to the Download folder or the root of shared storage: since Android 11, ACTION_OPEN_DOCUMENT_TREE refuses them, and that is where most users keep their PDFs. MediaStore lets an app read only other apps' images, video and audio, so it cannot list PDFs, e-books and other documents saved by browsers, email or messaging apps. Picking files one at a time with the system picker (which the app also offers) cannot provide the core feature: an up-to-date, device-wide list of the user's documents.
+> The Storage Access Framework cannot grant access to the Download folder or the root of shared storage: since Android 11, ACTION_OPEN_DOCUMENT_TREE refuses them, and that is where most users keep their PDFs. MediaStore lets an app read only other apps' images, video and audio, so it cannot list PDFs, Office files, e-books and other documents saved by browsers, email or messaging apps. Picking files one at a time with the system picker (which the app also offers) cannot provide the core feature: an up-to-date, device-wide list of the user's documents.
 
 ## 4. Store listing (Grow → Store presence → Main store listing)
 
 - **App name (30 max):** Docs Manager Pro
-- **Short description (80 max, this is exactly 80):**
-  `Read PDFs and e-books and find every document on your phone. No ads, no account.`
+- **Short description (80 max, this is 78):**
+  `Edit, convert and read PDFs, Word, Excel and PowerPoint. Private, no internet.`
 - **Full description:**
 
 ```
-Docs Manager Pro is a fast, private reader and manager for the documents on your phone.
+Docs Manager Pro is a private PDF editor, converter and document reader. Everything happens on your phone: the app has no internet access, so your documents never leave it.
+
+EDIT PDF, RIGHT ON THE PAGE
+• Change existing text: tap a line and type
+• Add new text, highlights, freehand drawing, boxes and comment notes
+• Sign: draw or type your signature and place it anywhere
+• Add images, white-out mistakes, and redact private details for good
+• Undo any change; saving makes a new file and leaves your original untouched
+
+CONVERT
+• PDF to Word, PDF to Excel, PDF to PowerPoint and PDF to images
+• Word, Excel, PowerPoint, web pages and text files to PDF
+• Scan paper with your camera, turn photos into a PDF, and OCR scans so their text can be searched and copied
+• PDF to PDF/A for long-term archiving
+• Create new Word, Excel and PowerPoint files
+
+ALL THE PDF TOOLS
+• Merge, Split, Organize pages, Rotate, Extract and Remove pages
+• Compress, Repair, Protect with a password and Unlock
+• Watermark, Page numbers, Crop, Edit metadata, and Compare two versions
+• Image tools: compress, resize, crop, rotate, watermark, convert, and HEIC to JPG
 
 READ
-• PDFs with smooth scrolling, pinch and double-tap zoom, and go to page
-• E-books (EPUB), XPS, comic books (CBZ) and images
-• Bigger or smaller e-book text: the book re-flows to fit your screen
-• Night mode that swaps light and dark but keeps charts and colours readable
-• Tap a page to hide the controls and read full screen
-• Opens password-protected PDFs
-• Picks up on the page where you left off
-
-TOOLS (all on your phone, nothing uploaded)
-• Merge, Split, Organize pages (reorder, turn, delete, add blank pages), Rotate, Extract pages and Remove pages
-• Compress PDF to make files smaller, and Repair PDF to rebuild damaged files
-• Protect PDF with a password, or Unlock a PDF whose password you know
-• Watermark, Page numbers, Crop margins and Edit metadata (title, author, keywords)
-• Scan to PDF with your camera, Images to PDF, and PDF to images (JPG or PNG)
-
-IMAGE TOOLS
-• Compress, Resize, Crop, Rotate or flip, and Watermark photos
-• Convert between JPG, PNG and WebP, and turn iPhone HEIC photos into JPG
-• Results are saved as new files in Download/Docs Manager Pro; your originals are never changed
-
-FIND
-• Recent files, with the page you were on
-• Add a folder (Documents, SD card, Drive and more) to see all its documents
-• Optional: see every document on your phone in one list, including Download, with PDF, e-book and image filters. This uses Android's All files access only if you turn it on, and you can turn it off at any time
-• Open documents from other apps with "Open with" or "Share"
+• PDFs with smooth zoom, night mode, and the page you left off
+• Word, Excel and PowerPoint files, e-books (EPUB), XPS, comics and images
+• Find every document: folders, or optionally your whole phone in one list, including Download (uses All files access only if you turn it on)
 
 PRIVATE BY DESIGN
-• No ads, no account, no tracking
-• No internet access: your documents never leave your phone
+• No ads, no account, no tracking, no internet access
+• Results are saved as new files in Download/Docs Manager Pro
 • Free and open source under the GNU AGPL v3
-
-More document tools from LLM Labs are on the way in free updates.
 ```
 
 - **App icon:** `store/listing/icon-512.png` (512 × 512, 32-bit PNG)
 - **Feature graphic:** `store/listing/feature-graphic.png` (1024 × 500)
-- **Video (optional):** upload `store/promo-video.mp4` (1920 × 1080, 1 min 19 s, no sound) to YouTube as **Public** or **Unlisted** with ads turned off, then paste its link. Play needs a YouTube link, not a file. This is separate from the All files access video.
-- **Phone screenshots (8):** `store/listing/phone-1-home.png` … `phone-8-files.png` (1080 × 1920), in this order: Home, PDF viewer, Merge, Split, Saved results, Night mode, E-book, Files
-- **7-inch tablet screenshots:** `store/listing/tablet-7/` (1200 × 1920): home, files, viewer, night
-- **10-inch tablet screenshots:** `store/listing/tablet-10/` (1600 × 2560): home, files, viewer, night
+- **Video (optional):** `store/promo-video.mp4` shows the 1.3 design; leave the Video field empty for 1.4.0, or record a new one before adding it. (The All files access declaration video is separate and still valid.)
+- **Phone screenshots (7):** `store/listing/phone-1-home.png` … `phone-7-files.png` (1080 × 1920), in this order: Home, Edit PDF, Convert, Office files, PDF reader, Tools, Files
+- **7-inch tablet screenshots:** `store/listing/tablet-7/` (1200 × 1920): home, editor, convert, viewer, word
+- **10-inch tablet screenshots:** `store/listing/tablet-10/` (1600 × 2560): home, editor, convert, viewer, word
 - Tablet screenshots are optional, but without them Play doesn't feature the app on tablets.
 - The HTML used to lay out the screenshots, feature graphic and video cards is in `store/art/`.
 - **App category:** Productivity
-- **Tags:** pick from Play's list. Closest: PDF reader, Document management, File management, E-book reader
+- **Tags:** pick from Play's list. Closest: PDF editor, PDF reader, Document management, Office documents
 - **Contact email:** trestle1011@gmail.com
 - **Website:** https://llmlabs.in
 
@@ -144,6 +140,12 @@ New personal developer accounts must run a **closed test with at least 12 tester
 ```
 <en-US>
 First release: read PDFs, e-books, XPS, comics and images. Night mode, e-book text size, recent files that reopen where you left off, and folders, or optionally every document on your phone in one list. No ads, no account, no internet.
+</en-US>
+```
+   1.4.0 notes:
+```
+<en-US>
+New: edit PDFs right on the page (change text, add text, highlight, draw, sign, images, white-out, redact), convert PDF to and from Word, Excel and PowerPoint, OCR, PDF/A, Compare, and open Office files. Fresh design. Still fully offline.
 </en-US>
 ```
    1.3.0 notes:

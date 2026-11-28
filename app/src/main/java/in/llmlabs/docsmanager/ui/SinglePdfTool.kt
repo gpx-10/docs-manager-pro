@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,6 +51,8 @@ fun SinglePdfTool(
     onOpenResult: (Uri) -> Unit,
     acceptLocked: Boolean = false,
     againLabel: String = "Use another PDF",
+    accept: Array<String> = arrayOf("application/pdf"),
+    chooseLabel: String = "Choose a PDF",
     onPicked: (PickedPdf) -> Unit = {},
     action: (PickedPdf) -> String?,
     run: suspend (PickedPdf) -> List<ToolOutput>,
@@ -68,12 +71,21 @@ fun SinglePdfTool(
             file = PickedPdf(uri, "…")
             scope.launch {
                 val loaded = loadPicked(context, uri)
-                file = loaded
-                if (usable(loaded, acceptLocked)) onPicked(loaded)
+                if (usable(loaded, acceptLocked)) {
+                    file = loaded
+                    onPicked(loaded)
+                } else {
+                    // A file the tool can't use: explain in a pop-up and let the user choose again.
+                    file = null
+                    error = when {
+                        loaded.locked -> "\"${loaded.name}\" is password protected. Unlock it first with Unlock PDF."
+                        else -> "\"${loaded.name}\": ${loaded.error ?: "this file can't be read."}"
+                    }
+                }
             }
         }
     }
-    val pick = { picker.launch(arrayOf("application/pdf")) }
+    val pick = { picker.launch(accept) }
     val saveGate = rememberSaveGate(onDenied = { error = "Docs Manager Pro needs storage access to save to Download." })
 
     val f = file
@@ -136,7 +148,7 @@ fun SinglePdfTool(
                 return@LazyColumn
             }
             if (f == null) {
-                item { PickPrompt(intro, "Choose a PDF", pick) }
+                item { PickPrompt(intro, chooseLabel, pick) }
                 return@LazyColumn
             }
             item {
@@ -145,10 +157,22 @@ fun SinglePdfTool(
                 }
             }
             if (ready) options(f!!, !busy)
-            error?.let { item { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp)) } }
             item { Spacer(Modifier.height(8.dp)) }
         }
     }
+    error?.let { ProblemDialog(it) { error = null } }
+}
+
+/** A clear pop-up for a file that can't be used or a tool that couldn't finish. */
+@Composable
+fun ProblemDialog(message: String, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Outlined.ErrorOutline, null) },
+        title = { Text("Couldn't use this file") },
+        text = { Text(message) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+    )
 }
 
 private fun usable(f: PickedPdf, acceptLocked: Boolean) =

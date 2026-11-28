@@ -9,13 +9,15 @@ import com.artifex.mupdf.fitz.Matrix
 import com.artifex.mupdf.fitz.Pixmap
 import com.artifex.mupdf.fitz.Page
 import com.artifex.mupdf.fitz.PDFDocument
+import com.artifex.mupdf.fitz.PDFAnnotation
 import com.artifex.mupdf.fitz.PDFPage
+import com.artifex.mupdf.fitz.Quad
 import com.artifex.mupdf.fitz.Rect
 import com.artifex.mupdf.fitz.SeekableInputOutputStream
 import com.artifex.mupdf.fitz.SeekableStream
 
-/** PdfOps backed by MuPDF. */
-class MuPdfOps : PdfOps {
+/** PdfOps backed by MuPDF. [context] is needed only for [ocr], which reads Tesseract's language data from the app. */
+class MuPdfOps(private val context: android.content.Context? = null) : PdfOps {
     override fun merge(inputs: List<ByteArray>): ByteArray {
         val out = PDFDocument()
         try {
@@ -283,6 +285,288 @@ class MuPdfOps : PdfOps {
                 }
             }
         }
+    }
+
+    override fun addImage(input: ByteArray, page: Int, image: ByteArray, x: Float, y: Float, width: Float, height: Float): ByteArray = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        PdfStamper(pdf).stampImage(page, image, x, y, width, height)
+        pdf.toBytes()
+    }
+
+    override fun redact(input: ByteArray, terms: List<String>): Changed = withPdf(input) { pdf ->
+        val words = terms.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        require(words.isNotEmpty()) { "Enter the words to remove" }
+        var count = 0
+        for (i in 0 until pdf.countPages()) {
+            (pdf.loadPage(i) as PDFPage).use { page ->
+                val p = page as PDFPage
+                var found = false
+                for (w in words) for (hit in p.search(w)) {
+                    p.createAnnotation(PDFAnnotation.TYPE_REDACT).apply { setQuadPoints(hit); update() }
+                    count++; found = true
+                }
+                if (found) p.applyRedactions(true, PDFPage.REDACT_IMAGE_PIXELS, PDFPage.REDACT_LINE_ART_NONE, PDFPage.REDACT_TEXT_REMOVE)
+            }
+        }
+        require(count > 0) { "None of those words were found in this PDF" }
+        Changed(pdf.toBytes("garbage=4,compress"), count)
+    }
+
+    override fun replaceText(input: ByteArray, page: Int, old: String, new: String): ByteArray = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        require(old.isNotBlank()) { "Choose the text to change" }
+        // Where the old words are, as boxes in the page's visible space (y grows downwards).
+        val boxes = (pdf.loadPage(page) as PDFPage).use { pg ->
+            val p = pg as PDFPage
+            val hits = p.search(old)
+            require(hits.isNotEmpty()) { "\"$old\" isn't on page ${page + 1}" }
+            val rects = hits.map { quads -> quads.map { it.toRect() }.reduce { a, b -> Rect(minOf(a.x0, b.x0), minOf(a.y0, b.y0), maxOf(a.x1, b.x1), maxOf(a.y1, b.y1)) } }
+            hits.forEach { p.createAnnotation(PDFAnnotation.TYPE_REDACT).apply { setQuadPoints(it); update() } }
+            p.applyRedactions(false, PDFPage.REDACT_IMAGE_NONE, PDFPage.REDACT_LINE_ART_NONE, PDFPage.REDACT_TEXT_REMOVE)
+            rects
+        }
+        val stamper = PdfStamper(pdf)
+        stamper.stamp(page) { _, h ->
+            for (r in boxes) {
+                val size = (r.y1 - r.y0) / 1.15f
+                text(new, r.x0, h - r.y1 + size * 0.22f, size, gray = 0f)
+            }
+        }
+        pdf.toBytes("garbage=4,compress")
+    }
+
+    override fun highlight(input: ByteArray, terms: List<String>): Changed = withPdf(input) { pdf ->
+        val words = terms.map { it.trim() }.filter { it.isNotEmpty() }.distinct()
+        require(words.isNotEmpty()) { "Enter the words to highlight" }
+        var count = 0
+        for (i in 0 until pdf.countPages()) {
+            (pdf.loadPage(i) as PDFPage).use { pg ->
+                val p = pg as PDFPage
+                for (w in words) for (hit in p.search(w)) {
+                    p.createAnnotation(PDFAnnotation.TYPE_HIGHLIGHT).apply { setQuadPoints(hit); setColor(floatArrayOf(1f, 0.85f, 0f)); update() }
+                    count++
+                }
+            }
+        }
+        require(count > 0) { "None of those words were found in this PDF" }
+        Changed(pdf.toBytes(), count)
+    }
+
+    override fun addNote(input: ByteArray, page: Int, x: Float, y: Float, text: String): ByteArray = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        require(text.isNotBlank()) { "Write the comment first" }
+        (pdf.loadPage(page) as PDFPage).use { pg ->
+            (pg as PDFPage).createAnnotation(PDFAnnotation.TYPE_TEXT).apply {
+                setRect(Rect(x, y, x + 24f, y + 24f)); setContents(text.trim()); setIcon("Comment"); setColor(floatArrayOf(1f, 0.85f, 0f)); update()
+            }
+        }
+        pdf.toBytes()
+    }
+
+    override fun annotations(input: ByteArray): List<PdfAnnotation> = withPdf(input) { pdf ->
+        (0 until pdf.countPages()).flatMap { i ->
+            (pdf.loadPage(i) as PDFPage).use { pg ->
+                ((pg as PDFPage).annotations ?: emptyArray()).map { a ->
+                    val type = when (a.type) { PDFAnnotation.TYPE_TEXT -> "Text"; PDFAnnotation.TYPE_HIGHLIGHT -> "Highlight"; PDFAnnotation.TYPE_INK -> "Ink"; else -> "Other" }
+                    PdfAnnotation(i, type, a.contents.orEmpty())
+                }
+            }
+        }
+    }
+
+    override fun compare(a: ByteArray, b: ByteArray): Comparison {
+        val left = renderAll(a, 0); val right = renderAll(b, 1)
+        try {
+            val changed = mutableListOf<Float>()
+            val report = mutableListOf<ByteArray>()
+            for (i in 0 until maxOf(left.size, right.size)) {
+                val x = left.getOrNull(i); val y = right.getOrNull(i)
+                if (x == null || y == null) {
+                    changed += 1f
+                    val only = (x ?: y)!!
+                    val tinted = only.copy(android.graphics.Bitmap.Config.ARGB_8888, true)
+                    android.graphics.Canvas(tinted).drawColor(android.graphics.Color.argb(70, 229, 72, 77))
+                    report += jpeg(tinted); tinted.recycle()
+                    continue
+                }
+                val other = if (y.width == x.width && y.height == x.height) y else android.graphics.Bitmap.createScaledBitmap(y, x.width, x.height, true)
+                val w = x.width; val h = x.height
+                val pa = IntArray(w * h); val pb = IntArray(w * h)
+                x.getPixels(pa, 0, w, 0, 0, w, h); other.getPixels(pb, 0, w, 0, 0, w, h)
+                var diff = 0
+                for (k in pa.indices) {
+                    val ca = pa[k]; val cb = pb[k]
+                    val delta = Math.abs((ca shr 16 and 255) - (cb shr 16 and 255)) + Math.abs((ca shr 8 and 255) - (cb shr 8 and 255)) + Math.abs((ca and 255) - (cb and 255))
+                    if (delta > 32) { diff++; pa[k] = android.graphics.Color.rgb(229, 72, 77) }
+                    else { val g = 255 - ((255 - (cb and 255)) * 0.35f).toInt(); pa[k] = android.graphics.Color.rgb(g, g, g) }
+                }
+                if (other !== y) other.recycle()
+                changed += diff.toFloat() / (w * h)
+                val out = android.graphics.Bitmap.createBitmap(pa, w, h, android.graphics.Bitmap.Config.ARGB_8888)
+                report += jpeg(out); out.recycle()
+            }
+            return Comparison(changed, imagesToPdf(report, ImagePage.FitImage))
+        } finally {
+            (left + right).forEach { it.recycle() }
+        }
+    }
+
+    private fun renderAll(bytes: ByteArray, index: Int): List<android.graphics.Bitmap> = withPdf(bytes, index) { pdf ->
+        (0 until pdf.countPages()).map { i -> pdf.loadPage(i).use { AndroidDrawDevice.drawPage(it, Matrix(1.25f)) } }
+    }
+
+    private fun jpeg(b: android.graphics.Bitmap) = java.io.ByteArrayOutputStream().also { b.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, it) }.toByteArray()
+
+    override fun ocr(input: ByteArray): ByteArray = withPdf(input) { pdf ->
+        val ctx = requireNotNull(context) { "OCR needs the app's language data" }
+        val tess = com.googlecode.tesseract.android.TessBaseAPI()
+        try {
+            require(tess.init(tessData(ctx).absolutePath, "eng")) { "OCR couldn't start on this phone" }
+            val stamper = PdfStamper(pdf)
+            val scale = 300f / 72f
+            var words = 0
+            for (i in 0 until pdf.countPages()) {
+                val bitmap = pdf.loadPage(i).use { AndroidDrawDevice.drawPage(it, Matrix(scale)) }
+                try {
+                    tess.setImage(bitmap)
+                    tess.utF8Text // runs the recognition
+                    val found = mutableListOf<Pair<String, android.graphics.Rect>>()
+                    tess.resultIterator?.let { it ->
+                        it.begin()
+                        do {
+                            val word = it.getUTF8Text(com.googlecode.tesseract.android.TessBaseAPI.PageIteratorLevel.RIL_WORD)
+                            val box = it.getBoundingRect(com.googlecode.tesseract.android.TessBaseAPI.PageIteratorLevel.RIL_WORD)
+                            if (!word.isNullOrBlank() && box != null) found += word.trim() to box
+                        } while (it.next(com.googlecode.tesseract.android.TessBaseAPI.PageIteratorLevel.RIL_WORD))
+                        it.delete()
+                    }
+                    if (found.isNotEmpty()) {
+                        words += found.size
+                        stamper.stamp(i) { _, h ->
+                            for ((word, r) in found) {
+                                val size = (r.height() / scale).coerceAtLeast(2f)
+                                invisibleText(word + " ", r.left / scale, h - r.bottom / scale + size * 0.2f, size, (r.width() / scale) * (word.length + 1f) / word.length)
+                            }
+                        }
+                    }
+                } finally {
+                    tess.clear()
+                    bitmap.recycle()
+                }
+            }
+            require(words > 0) { "No text was found. OCR reads printed English text best." }
+            pdf.toBytes()
+        } finally {
+            tess.recycle()
+        }
+    }
+
+    override fun textLines(input: ByteArray, page: Int): List<TextLine> = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        pdf.loadPage(page).use { p ->
+            val st = p.toStructuredText()
+            try {
+                val out = mutableListOf<TextLine>()
+                var text = StringBuilder(); var bold = 0; var chars = 0; var box: Rect? = null
+                st.walk(object : com.artifex.mupdf.fitz.StructuredTextWalker {
+                    override fun beginLine(bbox: Rect, wmode: Int, dir: com.artifex.mupdf.fitz.Point) { text = StringBuilder(); bold = 0; chars = 0; box = bbox }
+                    override fun onChar(c: Int, origin: com.artifex.mupdf.fitz.Point, font: com.artifex.mupdf.fitz.Font, size: Float, quad: Quad, argb: Int, flags: Int, bidi: Int) {
+                        text.appendCodePoint(c)
+                        if (c > 32) { chars++; if (font.isBold || Regex("bold|black|heavy|semibold|demi", RegexOption.IGNORE_CASE).containsMatchIn(font.name)) bold++ }
+                    }
+                    override fun endLine() {
+                        val t = text.toString().trim(); val b = box
+                        if (t.isNotEmpty() && b != null) out += TextLine(t, b.x0, b.y0, b.x1, b.y1, bold * 2 > chars)
+                    }
+                    override fun onImageBlock(bbox: Rect?, transform: Matrix?, image: Image?) {}
+                    override fun beginTextBlock(bbox: Rect?, flags: Int) {}
+                    override fun endTextBlock() {}
+                    override fun beginStruct(standard: String?, raw: String?, index: Int) {}
+                    override fun endStruct() {}
+                    override fun onVector(bbox: Rect?, info: com.artifex.mupdf.fitz.StructuredTextWalker.VectorInfo?, argb: Int) {}
+                })
+                out
+            } finally {
+                st.destroy()
+            }
+        }
+    }
+
+    override fun addText(input: ByteArray, page: Int, x: Float, y: Float, text: String, size: Float, color: Int): ByteArray = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        require(text.isNotBlank()) { "Type the text first" }
+        PdfStamper(pdf).stamp(page) { _, h ->
+            text.lines().forEachIndexed { i, line -> colorText(line, x, h - y - size * (i + 0.85f) * 1.2f + size * 0.2f, size, color) }
+        }
+        pdf.toBytes()
+    }
+
+    override fun addRect(input: ByteArray, page: Int, x: Float, y: Float, width: Float, height: Float, fill: Int?, stroke: Int?, strokeWidth: Float): ByteArray = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        PdfStamper(pdf).stamp(page) { _, h -> rect(x, h - y - height, width, height, fill, stroke, strokeWidth) }
+        pdf.toBytes()
+    }
+
+    override fun addInk(input: ByteArray, page: Int, strokes: List<List<Pair<Float, Float>>>, color: Int, width: Float): ByteArray = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        val lines = strokes.filter { it.isNotEmpty() }
+        require(lines.isNotEmpty()) { "Draw something first" }
+        (pdf.loadPage(page) as PDFPage).use { pg ->
+            (pg as PDFPage).createAnnotation(PDFAnnotation.TYPE_INK).apply {
+                setInkList(lines.map { s -> s.map { (px, py) -> com.artifex.mupdf.fitz.Point(px, py) }.toTypedArray() }.toTypedArray())
+                setColor(floatArrayOf((color shr 16 and 255) / 255f, (color shr 8 and 255) / 255f, (color and 255) / 255f))
+                setBorderWidth(width)
+                update()
+            }
+        }
+        pdf.toBytes()
+    }
+
+    override fun highlightArea(input: ByteArray, page: Int, x: Float, y: Float, width: Float, height: Float): ByteArray = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        (pdf.loadPage(page) as PDFPage).use { pg ->
+            (pg as PDFPage).createAnnotation(PDFAnnotation.TYPE_HIGHLIGHT).apply {
+                setQuadPoints(arrayOf(Quad(Rect(x, y, x + width, y + height)))); setColor(floatArrayOf(1f, 0.85f, 0f)); update()
+            }
+        }
+        pdf.toBytes()
+    }
+
+    override fun redactArea(input: ByteArray, page: Int, x: Float, y: Float, width: Float, height: Float): ByteArray = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        (pdf.loadPage(page) as PDFPage).use { pg ->
+            val p = pg as PDFPage
+            p.createAnnotation(PDFAnnotation.TYPE_REDACT).apply { setRect(Rect(x, y, x + width, y + height)); update() }
+            p.applyRedactions(true, PDFPage.REDACT_IMAGE_PIXELS, PDFPage.REDACT_LINE_ART_REMOVE_IF_COVERED, PDFPage.REDACT_TEXT_REMOVE)
+        }
+        pdf.toBytes("garbage=4,compress")
+    }
+
+    override fun replaceArea(input: ByteArray, page: Int, x: Float, y: Float, width: Float, height: Float, text: String, color: Int, bold: Boolean): ByteArray = withPdf(input) { pdf ->
+        require(page in 0 until pdf.countPages()) { "There is no page ${page + 1}" }
+        (pdf.loadPage(page) as PDFPage).use { pg ->
+            val p = pg as PDFPage
+            p.createAnnotation(PDFAnnotation.TYPE_REDACT).apply { setRect(Rect(x, y, x + width, y + height)); update() }
+            p.applyRedactions(false, PDFPage.REDACT_IMAGE_NONE, PDFPage.REDACT_LINE_ART_NONE, PDFPage.REDACT_TEXT_REMOVE)
+        }
+        if (text.isNotBlank()) {
+            val size = height / 1.15f
+            PdfStamper(pdf).stamp(page) { _, h -> colorText(text, x, h - y - height + size * 0.22f, size, color, bold) }
+        }
+        pdf.toBytes("garbage=4,compress")
+    }
+
+    /** Copies Tesseract's English data out of the app's assets once, where Tesseract can read it. */
+    private fun tessData(ctx: android.content.Context): java.io.File {
+        val root = java.io.File(ctx.noBackupFilesDir, "ocr")
+        val file = java.io.File(root, "tessdata/eng.traineddata")
+        if (!file.exists() || file.length() == 0L) {
+            file.parentFile!!.mkdirs()
+            val tmp = java.io.File(file.path + ".part")
+            ctx.assets.open("tessdata/eng.traineddata").use { i -> tmp.outputStream().use { i.copyTo(it) } }
+            tmp.renameTo(file)
+        }
+        return root
     }
 
     private inline fun <T> withPdf(bytes: ByteArray, index: Int = 0, block: (PDFDocument) -> T): T {

@@ -90,6 +90,22 @@ class DocumentEngineTest {
         }
     }
 
+    @Test
+    fun opensWordFilesAndShowsPowerPointSlideBySlide() {
+        engine.open(fixture("report.docx"), "report.docx").use { doc ->
+            assertTrue("Annual Report" in doc.pageText(0))
+        }
+        val deck = `in`.llmlabs.docsmanager.office.writePptx(listOf(
+            `in`.llmlabs.docsmanager.office.SlideContent.Text("First slide", listOf("One")),
+            `in`.llmlabs.docsmanager.office.SlideContent.Text("Second slide", listOf("Two")),
+        ))
+        engine.open(deck, "plan.pptx").use { doc ->
+            assertEquals(2, doc.pageCount)
+            assertFalse(doc.isReflowable)
+            assertTrue("Second slide" in doc.pageText(1))
+        }
+    }
+
     private fun hasDarkPixel(b: android.graphics.Bitmap, xs: IntRange, ys: IntRange): Boolean =
         xs.any { x -> ys.any { y -> android.graphics.Color.luminance(b.getPixel(x, y)) < 0.5f } }
 }

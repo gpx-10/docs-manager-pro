@@ -38,6 +38,12 @@ class MainActivity : ComponentActivity() {
     private var opened by mutableStateOf<Opened?>(null)
     /** The tool screen open under any Document, so Back from a Result returns to the tool. */
     private var tool by mutableStateOf<ToolScreen?>(null)
+
+    /** A document to open straight into the editor (from the reader's Edit button). */
+    private var editorStart by mutableStateOf<Uri?>(null)
+
+    /** The hub (Edit PDF or Convert) the open tool was chosen from, so Back returns there. */
+    private var hub by mutableStateOf<ToolScreen?>(null)
     private var recent by mutableStateOf(emptyList<RecentFile>())
     private var folders by mutableStateOf(emptyList<Uri>())
     private var allFilesGranted by mutableStateOf(false)
@@ -54,6 +60,7 @@ class MainActivity : ComponentActivity() {
         refresh()
         // After Android closed the app in the background, come back to the same Document.
         tool = savedInstanceState?.getString(KEY_TOOL)?.let { runCatching { ToolScreen.valueOf(it) }.getOrNull() }
+        hub = savedInstanceState?.getString(KEY_HUB)?.let { runCatching { ToolScreen.valueOf(it) }.getOrNull() }
         opened = savedInstanceState?.getString(KEY_URI)?.let { Opened(Uri.parse(it), savedInstanceState.getBoolean(KEY_EXTERNAL)) }
             ?: documentFrom(intent)
 
@@ -65,8 +72,13 @@ class MainActivity : ComponentActivity() {
                     // The tool stays underneath while a Result is open, so Back returns to it with its results intact.
                     Box(Modifier.fillMaxSize()) {
                         val openResult: (Uri) -> Unit = { opened = Opened(it, fromOtherApp = false) }
-                        val back = { tool = null; refresh() }
+                        // Back from a tool opened in a hub returns to that hub; otherwise to Home.
+                        val back = { if (hub != null && t != hub) tool = hub else { tool = null; hub = null; refresh() } }
+                        val openFromHub: (ToolScreen) -> Unit = { hub = t; tool = it }
                         when (t) {
+                            ToolScreen.Editor -> EditorScreen(start = editorStart, onBack = { editorStart = null; back() }, onOpenResult = openResult, onMoreTools = openFromHub.let { { it(ToolScreen.EditHub) } })
+                            ToolScreen.EditHub -> EditHubScreen(onBack = back, onOpenTool = openFromHub)
+                            ToolScreen.ConvertHub -> ConvertHubScreen(onBack = back, onOpenTool = openFromHub)
                             ToolScreen.Merge -> MergeScreen(onBack = back, onOpenResult = openResult)
                             ToolScreen.Split -> SplitScreen(onBack = back, onOpenResult = openResult)
                             ToolScreen.Organize -> OrganizeScreen(onBack = back, onOpenResult = openResult)
@@ -91,6 +103,18 @@ class MainActivity : ComponentActivity() {
                             ToolScreen.WatermarkImage -> WatermarkImageScreen(onBack = back, onOpenResult = openResult)
                             ToolScreen.ConvertImage -> ConvertImageScreen(heicToJpg = false, onBack = back, onOpenResult = openResult)
                             ToolScreen.HeicToJpg -> ConvertImageScreen(heicToJpg = true, onBack = back, onOpenResult = openResult)
+                            ToolScreen.Sign -> SignScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Redact -> RedactScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.EditText -> EditTextScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Annotate -> AnnotateScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Compare -> CompareScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.Ocr -> OcrScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.OfficeToPdf -> OfficeToPdfScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.PdfToWord -> PdfToWordScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.PdfToExcel -> PdfToExcelScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.PdfToPowerPoint -> PdfToPowerPointScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.PdfA -> PdfToPdfAScreen(onBack = back, onOpenResult = openResult)
+                            ToolScreen.NewDocument -> NewDocumentScreen(onBack = back, onOpenResult = openResult)
                         }
                         if (o != null) Viewer(o)
                     }
@@ -141,12 +165,14 @@ class MainActivity : ComponentActivity() {
             onOpened = { name, bytes -> rememberOpened(o.uri, name, bytes) },
             onPageChanged = { key, page -> recentFiles.setLastPage(key, page) },
             onRemoveFromRecent = if (known != null) ({ recentFiles.remove(o.uri.toString()); opened = null; refresh() }) else null,
+            onEdit = { editorStart = o.uri; hub = null; tool = ToolScreen.Editor; opened = null },
         )
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         tool?.let { outState.putString(KEY_TOOL, it.name) }
+        hub?.let { outState.putString(KEY_HUB, it.name) }
         opened?.let {
             outState.putString(KEY_URI, it.uri.toString())
             outState.putBoolean(KEY_EXTERNAL, it.fromOtherApp)
@@ -190,5 +216,6 @@ class MainActivity : ComponentActivity() {
         const val KEY_URI = "opened_uri"
         const val KEY_EXTERNAL = "opened_external"
         const val KEY_TOOL = "tool"
+        const val KEY_HUB = "hub"
     }
 }

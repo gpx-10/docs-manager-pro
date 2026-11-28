@@ -3,10 +3,19 @@ package `in`.llmlabs.docsmanager
 import com.artifex.mupdf.fitz.Document
 import com.artifex.mupdf.fitz.android.AndroidDrawDevice
 
-/** DocumentEngine for PDF, EPUB, XPS, CBZ and images, backed by MuPDF. */
+/**
+ * DocumentEngine for PDF, EPUB, XPS, CBZ, images and Office files, backed by MuPDF. Word and Excel
+ * open as reflowing text; PowerPoint decks are drawn slide by slide (MuPDF alone would run them together).
+ */
 class MuPdfEngine : DocumentEngine {
     override fun open(bytes: ByteArray, name: String, password: String?): OpenDocument {
-        val doc = Document.openDocument(bytes, name)
+        val doc = when (OfficeTypes.extension(name)) {
+            in OfficeTypes.powerPoint -> Document.openDocument(MuPdfOfficeEngine().toPdf(bytes, name), "application/pdf")
+            // Word reads best as clean HTML with headings, tables and lists; MuPDF's own reader is the fallback.
+            in OfficeTypes.word -> runCatching { `in`.llmlabs.docsmanager.office.docxToHtml(bytes) }.getOrNull()
+                ?.let { Document.openDocument(MuPdfOfficeEngine().styledHtml(it, PageSetup(margin = 18f)), "text/html") } ?: Document.openDocument(bytes, name)
+            else -> Document.openDocument(bytes, name)
+        }
         if (doc.needsPassword() && (password == null || !doc.authenticatePassword(password))) {
             doc.destroy()
             throw PasswordRequiredException(wrongPassword = password != null)

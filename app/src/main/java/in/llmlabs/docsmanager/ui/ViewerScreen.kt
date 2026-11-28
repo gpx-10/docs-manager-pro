@@ -134,6 +134,8 @@ fun ViewerScreen(
     onPageChanged: (recentKey: String, page: Int) -> Unit,
     /** Set when the Document came from Recent, so an unavailable file can be removed from it. */
     onRemoveFromRecent: (() -> Unit)?,
+    /** Opens this PDF in the editor; shown for PDFs only. */
+    onEdit: (() -> Unit)? = null,
     engine: DocumentEngine = remember { MuPdfEngine() },
 ) {
     val context = LocalContext.current
@@ -292,6 +294,9 @@ fun ViewerScreen(
                                     }
                                 }
                             }
+                        }
+                        if (session != null && onEdit != null && name.endsWith(".pdf", ignoreCase = true)) {
+                            IconButton(onClick = onEdit) { Icon(Icons.Outlined.Edit, "Edit this PDF") }
                         }
                         if (session != null) {
                             IconButton(onClick = { night = !night }) {

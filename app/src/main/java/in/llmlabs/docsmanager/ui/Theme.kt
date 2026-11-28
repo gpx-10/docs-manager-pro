@@ -2,10 +2,13 @@ package `in`.llmlabs.docsmanager.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 
 // The llmlabs.in palette (src/styles.css), so the app and the site feel like one product.
 private val Light = lightColorScheme(
@@ -50,7 +53,17 @@ private val Dark = darkColorScheme(
     outlineVariant = Color(0xFF2A2E3C),
 )
 
+/** Serif headings over a clean sans-serif body, like a well-set document. */
+private val Base = Typography()
+private val Type = Base.copy(
+    displaySmall = Base.displaySmall.copy(fontFamily = FontFamily.Serif),
+    headlineLarge = Base.headlineLarge.copy(fontFamily = FontFamily.Serif),
+    headlineMedium = Base.headlineMedium.copy(fontFamily = FontFamily.Serif),
+    headlineSmall = Base.headlineSmall.copy(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Medium),
+    titleLarge = Base.titleLarge.copy(fontFamily = FontFamily.Serif, fontWeight = FontWeight.Medium),
+)
+
 @Composable
 fun DocsTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) Dark else Light, content = content)
+    MaterialTheme(colorScheme = if (isSystemInDarkTheme()) Dark else Light, typography = Type, content = content)
 }

@@ -59,7 +59,68 @@ interface PdfOps {
 
     /** Draws every page as an image at [dpi] (72 = actual size). Throws [LockedPdfException] if locked. */
     fun pdfToImages(input: ByteArray, dpi: Int, format: ImageFormat): List<ByteArray>
+
+    /**
+     * Places an image (a signature, a stamp) on page [page] at ([x], [y]) from the top-left corner,
+     * [width] x [height] points, as the reader sees the page.
+     */
+    fun addImage(input: ByteArray, page: Int, image: ByteArray, x: Float, y: Float, width: Float, height: Float): ByteArray
+
+    /** Permanently removes every occurrence of [terms] (text and what's under it), leaving black boxes. */
+    fun redact(input: ByteArray, terms: List<String>): Changed
+
+    /** Replaces [old] with [new] on page [page], in a standard font. Throws IllegalArgumentException if [old] isn't there. */
+    fun replaceText(input: ByteArray, page: Int, old: String, new: String): ByteArray
+
+    /** Highlights every occurrence of [terms] in yellow. */
+    fun highlight(input: ByteArray, terms: List<String>): Changed
+
+    /** Adds a comment note at ([x], [y]) from the top-left of page [page]. */
+    fun addNote(input: ByteArray, page: Int, x: Float, y: Float, text: String): ByteArray
+
+    /** Highlights and comment notes in the document, page by page. */
+    fun annotations(input: ByteArray): List<PdfAnnotation>
+
+    /** Compares two versions page by page by how they look; the report shows changes in red. */
+    fun compare(a: ByteArray, b: ByteArray): Comparison
+
+    /** Recognises the text in scanned pages (English) and adds it invisibly, so it can be searched and copied. */
+    fun ocr(input: ByteArray): ByteArray
+
+    /* The page editor works in points from the page's top-left corner, as the reader sees it. */
+
+    /** Each line of text on page [page] and where it is. */
+    fun textLines(input: ByteArray, page: Int): List<TextLine>
+
+    /** Writes new [text] with its top-left corner at ([x], [y]); [color] is ARGB. Lines break at "\n". */
+    fun addText(input: ByteArray, page: Int, x: Float, y: Float, text: String, size: Float, color: Int): ByteArray
+
+    /** Draws a box: [fill] (ARGB) for a white-out or coloured block, [stroke] for an outline; null leaves either out. */
+    fun addRect(input: ByteArray, page: Int, x: Float, y: Float, width: Float, height: Float, fill: Int?, stroke: Int?, strokeWidth: Float = 2f): ByteArray
+
+    /** Adds freehand drawing (an ink annotation) made of [strokes] of (x, y) points. */
+    fun addInk(input: ByteArray, page: Int, strokes: List<List<Pair<Float, Float>>>, color: Int, width: Float): ByteArray
+
+    /** Highlights an area of a page in yellow. */
+    fun highlightArea(input: ByteArray, page: Int, x: Float, y: Float, width: Float, height: Float): ByteArray
+
+    /** Permanently removes everything in an area, leaving a black box. */
+    fun redactArea(input: ByteArray, page: Int, x: Float, y: Float, width: Float, height: Float): ByteArray
+
+    /** Removes the text in an area and writes [text] in its place, sized to fit the area's height. */
+    fun replaceArea(input: ByteArray, page: Int, x: Float, y: Float, width: Float, height: Float, text: String, color: Int = 0xFF000000.toInt(), bold: Boolean = false): ByteArray
 }
+
+/** A line of text and its box, in points from the page's top-left corner; [bold] when most of it is bold. */
+data class TextLine(val text: String, val x0: Float, val y0: Float, val x1: Float, val y1: Float, val bold: Boolean = false)
+
+/** A changed PDF and how many places were changed. */
+class Changed(val pdf: ByteArray, val count: Int)
+
+data class PdfAnnotation(val page: Int, val type: String, val contents: String)
+
+/** [changed] is the share of each page that differs (0 to 1; 1 for pages only one version has). */
+class Comparison(val changed: List<Float>, val report: ByteArray)
 
 /** Page size for Images to PDF. [width]/[height] in points; null means "the image's own size". */
 enum class ImagePage(val label: String, val width: Float?, val height: Float?) {

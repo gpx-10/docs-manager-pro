@@ -73,6 +73,7 @@ fun MergeScreen(onBack: () -> Unit, onOpenResult: (Uri) -> Unit, ops: PdfOps = r
         }
     }
 
+    error?.let { ProblemDialog(it) { error = null } }
     ToolScaffold(
         title = "Merge PDF",
         onBack = onBack,
@@ -133,7 +134,6 @@ fun MergeScreen(onBack: () -> Unit, onOpenResult: (Uri) -> Unit, ops: PdfOps = r
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
                 )
             }
-            error?.let { item { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(top = 4.dp)) } }
             item { Spacer(Modifier.height(8.dp)) }
         }
     }

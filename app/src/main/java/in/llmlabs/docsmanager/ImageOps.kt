@@ -36,6 +36,12 @@ interface ImageOps {
 
     /** Writes [text] across the middle of the image, see-through by [opacity] (0 to 1); [tiled] repeats it all over. */
     fun watermark(input: ByteArray, text: String, opacity: Float = 0.5f, tiled: Boolean = false): ByteArray
+
+    /**
+     * Turns a photo or scan of a signature into a PNG to place on documents: the paper becomes
+     * see-through and the picture is trimmed to the ink. Throws IllegalArgumentException if no ink is found.
+     */
+    fun cutOutSignature(input: ByteArray): ByteArray
 }
 
 data class ImageInfo(val width: Int, val height: Int, val format: String)
@@ -126,6 +132,39 @@ class AndroidImageOps : ImageOps {
             canvas.drawText(text, b.width / 2f, b.height / 2f - baselineShift, paint)
         }
         b
+    }
+
+    override fun cutOutSignature(input: ByteArray): ByteArray {
+        val src = decode(input)
+        // Work at a sensible size: signatures don't need more than 1200 pixels across.
+        val k = minOf(1f, 1200f / maxOf(src.width, src.height))
+        val b = if (k < 1f) Bitmap.createScaledBitmap(src, (src.width * k).toInt(), (src.height * k).toInt(), true).also { src.recycle() } else src
+        try {
+            val w = b.width; val h = b.height
+            val px = IntArray(w * h).also { b.getPixels(it, 0, w, 0, 0, w, h) }
+            // The paper is the brightness most of the picture has; ink is clearly darker than it.
+            val lum = IntArray(px.size) { i -> val c = px[i]; ((c shr 16 and 255) * 299 + (c shr 8 and 255) * 587 + (c and 255) * 114) / 1000 }
+            val paper = lum.sortedArray()[lum.size * 3 / 4]
+            val inkBelow = paper - 60
+            var l = w; var t = h; var r = -1; var bt = -1
+            for (y in 0 until h) for (x in 0 until w) {
+                val i = y * w + x
+                val v = lum[i]
+                if (v >= paper - 25 || android.graphics.Color.alpha(px[i]) < 20) { px[i] = 0; continue }
+                // Soft edge between paper and ink keeps strokes smooth.
+                val alpha = if (v <= inkBelow) 255 else 255 * (paper - 25 - v) / 35
+                px[i] = (alpha.coerceIn(0, 255) shl 24) or (px[i] and 0xFFFFFF)
+                if (v <= inkBelow) { if (x < l) l = x; if (x > r) r = x; if (y < t) t = y; if (y > bt) bt = y }
+            }
+            require(r >= 0) { "No signature was found in that picture. Use a photo of dark ink on light paper." }
+            val pad = 6
+            val x0 = maxOf(0, l - pad); val y0 = maxOf(0, t - pad); val x1 = minOf(w, r + pad + 1); val y1 = minOf(h, bt + pad + 1)
+            val out = Bitmap.createBitmap(x1 - x0, y1 - y0, Bitmap.Config.ARGB_8888)
+            out.setPixels(px, y0 * w + x0, w, 0, 0, x1 - x0, y1 - y0)
+            try { return encodeBytes(out, ImageFormat.Png, 100) } finally { out.recycle() }
+        } finally {
+            b.recycle()
+        }
     }
 
     private fun hasTransparency(b: Bitmap): Boolean {

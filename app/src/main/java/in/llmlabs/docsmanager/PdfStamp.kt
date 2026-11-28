@@ -12,6 +12,9 @@ import com.artifex.mupdf.fitz.PDFObject
 internal class PdfStamper(private val pdf: PDFDocument) {
     private val font = Font("Helvetica")
     private val fontRef: PDFObject = pdf.addSimpleFont(font, Font.SIMPLE_ENCODING_LATIN)
+    private val boldFont by lazy { Font("Helvetica-Bold") }
+    private val boldRef by lazy { pdf.addSimpleFont(boldFont, Font.SIMPLE_ENCODING_LATIN) }
+    private var usesBold = false
 
     /** Width of [text] at [size] points in this font. */
     fun textWidth(text: String, size: Float): Float =
@@ -36,6 +39,7 @@ internal class PdfStamper(private val pdf: PDFDocument) {
         val resources = page.getInheritable("Resources").let { if (it.isNull) pdf.newDictionary() else it }
         page.put("Resources", resources)
         dictIn(resources, "Font").put(FONT, fontRef)
+        if (usesBold) dictIn(resources, "Font").put(BOLD, boldRef)
         if (opacity < 1f) {
             val gs = pdf.newDictionary().apply {
                 put("Type", pdf.newName("ExtGState"))
@@ -63,6 +67,24 @@ internal class PdfStamper(private val pdf: PDFDocument) {
         page.put("Contents", contents)
     }
 
+    private var images = 0
+
+    /** Draws an image at ([x], [y]) from the top-left of the visible page, [w] x [h] points. */
+    fun stampImage(index: Int, imageBytes: ByteArray, x: Float, y: Float, w: Float, h: Float) {
+        val image = com.artifex.mupdf.fitz.Image(imageBytes)
+        val name = "DMPImg${images++}"
+        try {
+            val ref = pdf.addImage(image)
+            val page = pdf.findPage(index)
+            val resources = page.getInheritable("Resources").let { if (it.isNull) pdf.newDictionary() else it }
+            page.put("Resources", resources)
+            dictIn(resources, "XObject").put(name, ref)
+        } finally {
+            image.destroy()
+        }
+        stamp(index) { _, ph -> ops.append("q ${n(w)} 0 0 ${n(h)} ${n(x)} ${n(ph - y - h)} cm /$name Do Q\n") }
+    }
+
     private fun dictIn(parent: PDFObject, key: String): PDFObject {
         val existing = parent.get(key)
         if (!existing.isNull) return existing
@@ -72,6 +94,37 @@ internal class PdfStamper(private val pdf: PDFDocument) {
     /** Collects drawing commands. */
     inner class Canvas {
         internal val ops = StringBuilder()
+
+        /**
+         * Writes [text] invisibly (for search and copy) with its baseline at ([x], [y]), squeezed or
+         * stretched to [width] so it lines up with the words in a scanned picture.
+         */
+        fun invisibleText(text: String, x: Float, y: Float, size: Float, width: Float) {
+            val natural = textWidth(text, size)
+            if (natural <= 0f) return
+            val scale = (100f * width / natural).coerceIn(10f, 1000f)
+            val hex = latin1(text).map { "%02X".format(it.code) }.joinToString("")
+            ops.append("BT /$FONT ").append(n(size)).append(" Tf 3 Tr ").append(n(scale)).append(" Tz ")
+                .append(n(x)).append(' ').append(n(y)).append(" Td <").append(hex).append("> Tj ET\n")
+        }
+
+        /** Writes [text] in colour [argb] with its baseline starting at ([x], [y]). */
+        fun colorText(text: String, x: Float, y: Float, size: Float, argb: Int, bold: Boolean = false) {
+            val hex = latin1(text).map { "%02X".format(it.code) }.joinToString("")
+            if (bold) usesBold = true
+            ops.append("BT ").append(rgb(argb)).append(" rg /${if (bold) BOLD else FONT} ").append(n(size)).append(" Tf ")
+                .append(n(x)).append(' ').append(n(y)).append(" Td <").append(hex).append("> Tj ET\n")
+        }
+
+        /** A box with its bottom-left corner at ([x], [y]), filled and/or outlined (ARGB colours). */
+        fun rect(x: Float, y: Float, w: Float, h: Float, fill: Int?, stroke: Int?, strokeWidth: Float) {
+            ops.append("q ")
+            fill?.let { ops.append(rgb(it)).append(" rg ") }
+            stroke?.let { ops.append(rgb(it)).append(" RG ").append(n(strokeWidth)).append(" w ") }
+            ops.append("${n(x)} ${n(y)} ${n(w)} ${n(h)} re ").append(when { fill != null && stroke != null -> "B"; fill != null -> "f"; else -> "S" }).append(" Q\n")
+        }
+
+        private fun rgb(argb: Int) = listOf(argb shr 16 and 255, argb shr 8 and 255, argb and 255).joinToString(" ") { n(it / 255f) }
 
         /** Writes [text] with its baseline starting at ([x], [y]), turned [angle] degrees anticlockwise. */
         fun text(text: String, x: Float, y: Float, size: Float, angle: Float = 0f, gray: Float = 0.25f) {
@@ -106,6 +159,7 @@ internal class PdfStamper(private val pdf: PDFDocument) {
 
     private companion object {
         const val FONT = "DMPHelv"
+        const val BOLD = "DMPHelvB"
         const val GSTATE = "DMPgs"
 
         fun n(v: Float) = "%.3f".format(java.util.Locale.ROOT, v)

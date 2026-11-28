@@ -107,4 +107,21 @@ class ImageOpsTest {
         }
         assertTrue("only $changed pixels changed", changed > 15)
     }
+
+    @Test
+    fun aPhotographedSignatureLosesItsPaperAndIsTrimmedToTheInk() {
+        // A 400x200 "photo": off-white paper with a dark blue stroke in the middle.
+        val photo = android.graphics.Bitmap.createBitmap(400, 200, android.graphics.Bitmap.Config.ARGB_8888)
+        val c = android.graphics.Canvas(photo)
+        c.drawColor(Color.rgb(240, 238, 230))
+        c.drawRect(100f, 90f, 300f, 110f, android.graphics.Paint().apply { color = Color.rgb(20, 40, 120) })
+        val jpg = java.io.ByteArrayOutputStream().also { photo.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, it) }.toByteArray()
+
+        val png = ops.cutOutSignature(jpg)
+        val out = BitmapFactory.decodeByteArray(png, 0, png.size)
+        assertEquals("PNG", ops.info(png).format)
+        assertTrue("${out.width}x${out.height}", out.width in 200..240 && out.height in 20..50) // trimmed to the stroke
+        assertEquals(0, Color.alpha(out.getPixel(1, 1)))                                         // paper is see-through
+        assertTrue(Color.alpha(out.getPixel(out.width / 2, out.height / 2)) > 200)              // ink stays
+    }
 }

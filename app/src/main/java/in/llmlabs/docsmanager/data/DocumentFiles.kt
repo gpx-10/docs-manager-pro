@@ -89,7 +89,7 @@ object DocumentFiles {
 
     data class DeviceFile(val uri: Uri, val name: String, val size: Long, val modified: Long)
 
-    val SUPPORTED = setOf("pdf", "epub", "xps", "oxps", "cbz", "png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff")
+    val SUPPORTED = setOf("pdf", "epub", "xps", "oxps", "cbz", "png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff", "docx", "xlsx", "pptx")
 
     /** Lists supported Documents inside a folder the user granted, looking up to [maxDepth] folders deep. */
     fun listFolder(context: Context, tree: Uri, maxDepth: Int = 3, limit: Int = 500): List<DeviceFile> {

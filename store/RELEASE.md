@@ -24,6 +24,15 @@ ever lost, ask Play support for an upload key reset. Users are not affected.
 To try the exact release code on a phone first: `./gradlew assembleRelease`, then
 `adb install -r app/build/outputs/apk/release/app-release.apk`.
 
+## Checks done for 1.4.0
+
+- 61 device tests and 6 unit tests pass (`./gradlew testDebugUnitTest connectedDebugAndroidTest`).
+- Every tool tried by hand on the emulator (Pixel, Android 16), plus 7- and 10-inch tablet layouts.
+- Signed bundle verifies (`jarsigner -verify`); about 22 MB, each phone downloads only its own CPU type.
+- All six native libraries (MuPDF, Tesseract OCR, Leptonica, libjpeg, libpng, androidx) are 16 KB aligned.
+- Merged manifest: still **no `INTERNET`** permission; Tesseract4Android adds none.
+- OCR language data (`assets/tessdata/eng.traineddata`, tessdata_fast, Apache-2.0) ships in the app.
+
 ## Checks done for 1.0.0
 
 - Signed bundle verifies (`jarsigner -verify`).

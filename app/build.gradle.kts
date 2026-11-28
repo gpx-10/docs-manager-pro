@@ -18,8 +18,8 @@ android {
         applicationId = "in.llmlabs.docsmanager"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.3.0"
+        versionCode = 5
+        versionName = "1.4.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // Phones are ARM. Leaving out x86 halves the APK; Play's App Bundle then ships one ARM type per phone.
         ndk { abiFilters += listOf("armeabi-v7a", "arm64-v8a") }
@@ -62,6 +62,8 @@ android {
 dependencies {
     // PDF, EPUB, XPS, CBZ and image rendering. AGPL, same as LLM Labs.
     implementation("com.artifex.mupdf:fitz:1.28.5")
+    // Offline OCR (Tesseract 5.5.1), the same engine llmlabs.in uses through tesseract.js. Apache-2.0.
+    implementation("cz.adaptech.tesseract4android:tesseract4android:4.9.0")
 
     val composeBom = platform("androidx.compose:compose-bom:2025.01.01")
     implementation(composeBom)

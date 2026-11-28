@@ -100,6 +100,7 @@ fun SplitScreen(onBack: () -> Unit, onOpenResult: (Uri) -> Unit, ops: PdfOps = r
         }
     }
 
+    error?.let { ProblemDialog(it) { error = null } }
     ToolScaffold(
         title = "Split PDF",
         onBack = onBack,
@@ -167,7 +168,6 @@ fun SplitScreen(onBack: () -> Unit, onOpenResult: (Uri) -> Unit, ops: PdfOps = r
                     }
                 }
             }
-            error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
         }
     }
 }

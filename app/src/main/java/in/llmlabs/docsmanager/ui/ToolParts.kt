@@ -57,7 +57,7 @@ suspend fun loadPicked(context: Context, uri: Uri): PickedPdf = withContext(Disp
     } catch (e: PasswordRequiredException) {
         PickedPdf(uri, name, bytes, pages = 0, locked = true)
     } catch (e: Exception) {
-        PickedPdf(uri, name, error = "This file is damaged or not a PDF.")
+        PickedPdf(uri, name, error = if (name.endsWith(".pdf", true)) "This file is damaged or not a PDF." else "This file can't be read. It may be damaged.")
     }
 }
 

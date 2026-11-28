@@ -144,6 +144,7 @@ fun ImagesToPdfScreen(scan: Boolean, onBack: () -> Unit, onOpenResult: (Uri) -> 
         }
     }
 
+    error?.let { ProblemDialog(it) { error = null } }
     ToolScaffold(
         title = if (scan) "Scan to PDF" else "Images to PDF",
         onBack = onBack,
@@ -189,8 +190,7 @@ fun ImagesToPdfScreen(scan: Boolean, onBack: () -> Unit, onOpenResult: (Uri) -> 
                         }
                     }
                 }
-                error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
-                return@LazyColumn
+                    return@LazyColumn
             }
             item { Text("Pages are in this order, top to bottom.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             itemsIndexed(images, key = { _, im -> im.id }) { i, im ->
@@ -215,7 +215,6 @@ fun ImagesToPdfScreen(scan: Boolean, onBack: () -> Unit, onOpenResult: (Uri) -> 
             item {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Name of the PDF") }, singleLine = true, enabled = !busy, modifier = Modifier.fillMaxWidth().padding(top = 8.dp))
             }
-            error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
             item { Spacer(Modifier.height(8.dp)) }
         }
     }

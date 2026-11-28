@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,10 +46,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** MIME types the file picker offers. Office types join when the Office engine lands. */
+/** MIME types the file picker offers. */
 val OPENABLE_TYPES = arrayOf(
     "application/pdf", "application/epub+zip", "application/oxps", "application/vnd.ms-xpsdocument",
     "application/vnd.comicbook+zip", "application/x-cbz", "image/*",
+    `in`.llmlabs.docsmanager.OfficeTypes.DOCX, `in`.llmlabs.docsmanager.OfficeTypes.XLSX, `in`.llmlabs.docsmanager.OfficeTypes.PPTX,
 )
 
 private enum class Tab(val label: String, val icon: ImageVector) {
@@ -182,43 +184,71 @@ private fun HomeTab(
 ) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(scaled(80.dp)),
-        contentPadding = PaddingValues(16.dp, 8.dp, 16.dp, 24.dp),
+        contentPadding = PaddingValues(16.dp, 4.dp, 16.dp, 24.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        item(span = { GridItemSpan(maxLineSpan) }) { HeroCard(openPicker) }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            Text("What would you like to do?", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(top = 4.dp, bottom = 2.dp))
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            FeatureCard(
+                Icons.Outlined.EditNote, "Edit PDF", "Open a PDF and change it right on the page.",
+                listOf(Color(0xFF4F6DF5), Color(0xFF2B3FB8)), listOf("Edit text", "Add text", "Highlight", "Sign", "Draw", "Images", "Redact"),
+            ) { onOpenTool(ToolScreen.Editor) }
+        }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            FeatureCard(
+                Icons.Outlined.SwapHoriz, "Convert", "Turn PDFs into Office files and images, and back again.",
+                listOf(Color(0xFF7B61FF), Color(0xFF3B5BDB)), listOf("PDF to Word", "PDF to Excel", "PowerPoint", "Images", "Scan", "OCR"),
+            ) { onOpenTool(ToolScreen.ConvertHub) }
+        }
         item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Quick actions", null) {} }
         item { QuickAction(Icons.Outlined.FileOpen, "Open a file", openPicker) }
-        item { QuickAction(Icons.Outlined.CreateNewFolder, "Add a folder", addFolder) }
+        item { QuickAction(Icons.Outlined.DocumentScanner, "Scan") { onOpenTool(ToolScreen.Scan) } }
         item { QuickAction(Icons.Outlined.MergeType, "Merge PDF") { onOpenTool(ToolScreen.Merge) } }
-        item { QuickAction(Icons.Outlined.CallSplit, "Split PDF") { onOpenTool(ToolScreen.Split) } }
+        item { QuickAction(Icons.Outlined.Compress, "Compress") { onOpenTool(ToolScreen.Compress) } }
         item(span = { GridItemSpan(maxLineSpan) }) { SectionHeader("Recent", if (recent.size > 5) "See all" else null, showFiles) }
         if (recent.isEmpty()) {
             item(span = { GridItemSpan(maxLineSpan) }) { EmptyNote(Icons.Outlined.History, "Files you open will show up here") }
         } else {
             recent.take(5).forEach { f -> item(span = { GridItemSpan(maxLineSpan) }, key = "recent-${f.uri}") { RecentRow(f, onOpen, onRemove) } }
         }
+        item(span = { GridItemSpan(maxLineSpan) }) {
+            TextButton(onClick = addFolder, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Outlined.CreateNewFolder, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text("Add a folder of documents")
+            }
+        }
     }
 }
 
+/** One of the two big entry points on Home, on a gradient: Edit PDF and Convert. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HeroCard(openPicker: () -> Unit) {
-    Box(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(Brush.linearGradient(listOf(Color(0xFF4F6DF5), Color(0xFF2B3FB8))))
-            .padding(20.dp),
-    ) {
-        Column {
-            Text("All your documents, one app", color = Color.White, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-            Spacer(Modifier.height(6.dp))
-            Text("Read PDFs and e-books. Merge, organize, compress and protect PDFs. Your files stay on your device.", color = Color(0xFFDDE3FF), style = MaterialTheme.typography.bodyMedium)
-            Spacer(Modifier.height(14.dp))
-            Button(onClick = openPicker, colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF2B3FB8))) {
-                Icon(Icons.Outlined.FileOpen, null, Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Open a document")
+private fun FeatureCard(icon: ImageVector, title: String, text: String, colors: List<Color>, examples: List<String>, onClick: () -> Unit) {
+    Surface(onClick = onClick, shape = RoundedCornerShape(24.dp), color = Color.Transparent, modifier = Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth().background(Brush.linearGradient(colors)).padding(22.dp)) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(60.dp).clip(RoundedCornerShape(18.dp)).background(Color.White.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+                        Icon(icon, null, tint = Color.White, modifier = Modifier.size(34.dp))
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Text(title, style = MaterialTheme.typography.headlineMedium, color = Color.White, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
+                    Icon(Icons.AutoMirrored.Outlined.KeyboardArrowRight, null, tint = Color.White, modifier = Modifier.size(30.dp))
+                }
+                Spacer(Modifier.height(14.dp))
+                Text(text, style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.92f))
+                Spacer(Modifier.height(14.dp))
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    examples.forEach {
+                        Text(
+                            it, color = Color.White, style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.16f)).padding(horizontal = 10.dp, vertical = 5.dp),
+                        )
+                    }
+                }
             }
         }
     }
@@ -383,6 +413,7 @@ private fun FilesTab(
 private enum class KindFilter(val label: String, val extensions: Set<String>?) {
     All("All", null),
     Pdf("PDF", setOf("pdf")),
+    Office("Office", setOf("docx", "xlsx", "pptx")),
     Books("E-books", setOf("epub", "cbz", "xps", "oxps")),
     Images("Images", setOf("png", "jpg", "jpeg", "webp", "gif", "bmp", "tif", "tiff")),
 }

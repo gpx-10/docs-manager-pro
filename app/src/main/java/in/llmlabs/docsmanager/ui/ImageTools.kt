@@ -105,6 +105,7 @@ private fun ImageTool(
             scope.launch {
                 val done = describeImage(context, img)
                 val i = images.indexOfFirst { it.id == img.id }
+                if (done.error) { images.removeAll { it.id == img.id }; error = "\"${done.name}\": ${done.detail}"; return@launch }
                 if (i >= 0) images[i] = done
                 if (images.firstOrNull()?.id == img.id && !done.error) {
                     withContext(Dispatchers.IO) { runCatching { DocumentFiles.readBytes(context, uri) }.getOrNull() }?.let(onFirstImage)
@@ -183,10 +184,10 @@ private fun ImageTool(
             }
             if (!single) item { OutlinedButton(onClick = pick, enabled = !busy) { Text("Add more images") } }
             if (usable.isNotEmpty()) options(usable, !busy)
-            error?.let { item { Text(it, color = MaterialTheme.colorScheme.error) } }
             item { Spacer(Modifier.height(8.dp)) }
         }
     }
+    error?.let { ProblemDialog(it) { error = null } }
 }
 
 private fun outputFormatOf(bytes: ByteArray) = AndroidImageOps.outputFormat(bytes)

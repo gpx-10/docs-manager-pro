@@ -50,5 +50,10 @@ function crc32(buf) {
   // wide.png: a 600x400 gradient photo. Red grows to the right, green grows downwards,
   // so the colour in each corner shows whether an image was turned or flipped.
   fs.writeFileSync(out + '/wide.png', photoPng(600, 400));
+  // scanned.pdf: an A4 page that is only a picture of text (tools/scan-page.png), like a scan, for OCR.
+  const sc = await PDFDocument.create();
+  const pic = await sc.embedPng(fs.readFileSync(__dirname + '/scan-page.png'));
+  sc.addPage([595, 842]).drawImage(pic, { x: 0, y: 0, width: 595, height: 842 });
+  fs.writeFileSync(out + '/scanned.pdf', await sc.save());
   // wide.jpg, wide.heic and wide-exif6.jpg are made from wide.png by tools/make-image-fixtures.sh (macOS sips).
 })();
