@@ -24,6 +24,13 @@ ever lost, ask Play support for an upload key reset. Users are not affected.
 To try the exact release code on a phone first: `./gradlew assembleRelease`, then
 `adb install -r app/build/outputs/apk/release/app-release.apk`.
 
+## Checks done for 1.4.2
+
+- Fix: editor taps and drags land in the right place after zooming in.
+- 61 device tests and 6 unit tests pass.
+- Signed bundle verifies (`jarsigner -verify`), upload key fingerprint 99:F2:…:17:F8; about 22 MB.
+- Merged manifest: versionCode 7, versionName 1.4.2, still **no `INTERNET`** permission.
+
 ## Checks done for 1.4.0
 
 - 61 device tests and 6 unit tests pass (`./gradlew testDebugUnitTest connectedDebugAndroidTest`).

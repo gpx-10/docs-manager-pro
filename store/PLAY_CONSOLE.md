@@ -1,4 +1,4 @@
-# Google Play submission: Docs Manager Pro 1.4.1
+# Google Play submission: Docs Manager Pro 1.4.2
 
 Every answer below matches what the app does in version 1.0.0 (package `in.llmlabs.docsmanager`).
 Copy them into Play Console as written. If the app changes, update this file first.
@@ -141,6 +141,12 @@ New personal developer accounts must run a **closed test with at least 12 tester
 ```
 <en-US>
 First release: read PDFs, e-books, XPS, comics and images. Night mode, e-book text size, recent files that reopen where you left off, and folders, or optionally every document on your phone in one list. No ads, no account, no internet.
+</en-US>
+```
+   1.4.2 notes (versionCode 7; if 1.4.1 never went live, use the 1.4.1 notes instead):
+```
+<en-US>
+Fixed: editing a PDF after zooming in. Taps, text, signatures, highlights and drawings now land exactly where you touch at any zoom.
 </en-US>
 ```
    1.4.1 notes (use these for 1.4.0 too):
