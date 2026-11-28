@@ -438,19 +438,20 @@ private fun PageSurface(
         Canvas(
             Modifier.fillMaxSize().pointerInput(tool, enabled, version) {
                 if (!enabled) return@pointerInput
-                val k = size.first / this.size.width // points per pixel
+                // Points per pixel, read on every touch: zooming changes the page width without restarting this block.
+                fun k() = size.first / this.size.width
                 if (tool.drag) {
                     detectDragGestures(
                         onDragStart = { o -> if (tool == EditTool.Draw) stroke = listOf(o) else { dragStart = o; dragNow = o } },
                         onDrag = { ch, _ -> ch.consume(); if (tool == EditTool.Draw) stroke = stroke + ch.position else dragNow = ch.position },
                         onDragEnd = {
                             if (tool == EditTool.Draw) {
-                                if (stroke.size > 1) onStroke(stroke.map { it.x * k to it.y * k })
+                                if (stroke.size > 1) onStroke(stroke.map { it.x * k() to it.y * k() })
                                 stroke = emptyList()
                             } else {
                                 val a = dragStart; val b = dragNow
                                 if (a != null && b != null && Math.abs(a.x - b.x) > 6 && Math.abs(a.y - b.y) > 6) {
-                                    onArea(minOf(a.x, b.x) * k, minOf(a.y, b.y) * k, Math.abs(a.x - b.x) * k, Math.abs(a.y - b.y) * k)
+                                    onArea(minOf(a.x, b.x) * k(), minOf(a.y, b.y) * k(), Math.abs(a.x - b.x) * k(), Math.abs(a.y - b.y) * k())
                                 }
                                 dragStart = null; dragNow = null
                             }
@@ -458,7 +459,7 @@ private fun PageSurface(
                         onDragCancel = { dragStart = null; dragNow = null; stroke = emptyList() },
                     )
                 } else {
-                    detectTapGestures { o -> onTap(o.x * k, o.y * k) }
+                    detectTapGestures { o -> onTap(o.x * k(), o.y * k()) }
                 }
             },
         ) {
